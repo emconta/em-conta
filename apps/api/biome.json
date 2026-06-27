@@ -1,0 +1,12 @@
+{
+  "extends": "//",
+  "files": {
+    "includes": ["src/**/*.ts", "test/**/*.ts", "*.json", "*.jsonc", "*.mts"]
+  },
+  "formatter": {
+    "includes": ["src/**/*.ts", "test/**/*.ts", "*.json", "*.jsonc", "*.mts"]
+  },
+  "linter": {
+    "includes": ["src/**/*.ts", "test/**/*.ts", "*.mts"]
+  }
+}

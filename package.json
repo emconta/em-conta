@@ -1,0 +1,37 @@
+{
+  "name": "em-conta",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.12.0 <25"
+  },
+  "scripts": {
+    "lint": "pnpm api:lint && pnpm web:lint",
+    "format": "pnpm api:format && pnpm web:format",
+    "format:check": "pnpm api:format:check && pnpm web:format:check",
+    "api:deploy": "pnpm --filter api run deploy",
+    "api:dev": "pnpm --filter api dev",
+    "api:lint": "pnpm --filter api lint",
+    "api:format": "pnpm --filter api format",
+    "api:format:check": "pnpm --filter api exec biome format .",
+    "api:test": "pnpm --filter api test",
+    "api:typegen": "pnpm --filter api cf-typegen",
+    "web:dev": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "web:deploy": "pnpm --filter web run deploy",
+    "web:lint": "pnpm --filter web lint",
+    "web:format": "pnpm --filter web format",
+    "web:format:check": "pnpm --filter web exec biome format .",
+    "web:preview": "pnpm --filter web preview",
+    "dev": "pnpm concurrently -n web,api -c blue,magenta \"pnpm web:dev\" \"pnpm api:dev\""
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@types/node": "^25.9.2",
+    "concurrently": "^10.0.3",
+    "typescript": "^5.5.2",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.98.0"
+  }
+}

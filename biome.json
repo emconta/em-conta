@@ -1,0 +1,40 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/.svelte-kit",
+      "!!**/.wrangler",
+      "!!**/build",
+      "!!**/dist"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "recommended": true
+      }
+    }
+  }
+}

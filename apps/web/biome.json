@@ -1,0 +1,17 @@
+{
+  "extends": "//",
+  "files": {
+    "includes": ["src/**/*.{ts,tsx,css}", "*.{js,ts,json,jsonc}", "index.html"]
+  },
+  "formatter": {
+    "includes": ["src/**/*.{ts,tsx,css}", "*.{js,ts,json,jsonc}", "index.html"]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "linter": {
+    "includes": ["src/**/*.{ts,tsx}", "*.{js,ts}"]
+  }
+}

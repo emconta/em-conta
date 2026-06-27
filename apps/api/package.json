@@ -1,0 +1,15 @@
+{
+  "name": "api",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.4"
+  }
+}
