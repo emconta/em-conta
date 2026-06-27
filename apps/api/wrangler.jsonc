@@ -11,5 +11,14 @@
     "enabled": true
   },
   "upload_source_maps": true,
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "CORS_ORIGINS": "http://localhost:5173,https://em-conta-web.pages.dev"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "854973d44c3a48f3aca607526d43c689"
+    }
+  ]
 }
