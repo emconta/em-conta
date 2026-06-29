@@ -1,8 +1,5 @@
 import type { StandardSchemaV1Issue } from "@tanstack/react-form";
-import type {
-  CoreInputFieldProps,
-  InputType,
-} from "@web/components/forms/core/core-input-field";
+import type { CoreInputFieldProps, InputType } from "@web/components/forms/core/core-input-field";
 import CoreInputField from "@web/components/forms/core/core-input-field";
 import type { FieldWrapperProps } from "@web/components/forms/field-wrapper";
 import { useFieldContext } from "@web/components/forms/form-context";

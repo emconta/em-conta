@@ -12,12 +12,7 @@ export interface FieldWrapperProps {
   classNames?: { label?: string; container?: string };
 }
 
-export default function FieldWrapper({
-  children,
-  errors,
-  label,
-  classNames,
-}: FieldWrapperProps) {
+export default function FieldWrapper({ children, errors, label, classNames }: FieldWrapperProps) {
   return (
     <div className={cn("flex flex-col gap-2", classNames?.container)}>
       {label && <Label className={cn(classNames?.label)}>{label}</Label>}
