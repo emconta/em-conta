@@ -1,10 +1,13 @@
+import Database from "@api/db/database";
 import Env from "@api/env";
 import { Layer, Logger, ManagedRuntime } from "effect";
 
 export function makeRuntime(env: Cloudflare.Env) {
   const noDepsLayer = Layer.provide(Layer.mergeAll(Env.Default(env), Logger.pretty), Logger.pretty);
 
-  const appLayer = Layer.mergeAll(noDepsLayer);
+  const baseLayer = Layer.provide(Layer.mergeAll(Database.Default), noDepsLayer);
+
+  const appLayer = Layer.mergeAll(noDepsLayer, baseLayer);
 
   const runtime = ManagedRuntime.make(appLayer);
 
