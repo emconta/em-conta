@@ -8,7 +8,6 @@
     "format": "biome format --write .",
     "test": "vitest",
     "cf-typegen": "wrangler types",
-
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
@@ -19,6 +18,7 @@
     "@scalar/hono-api-reference": "^0.10.10",
     "@types/pg": "^8.20.0",
     "@valibot/to-json-schema": "^1.6.0",
+    "better-auth": "^1.6.22",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",

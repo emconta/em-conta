@@ -30,7 +30,7 @@ export default class Database extends Effect.Service<Database>()("Database", {
       );
     }
 
-    return { $client: client, execute };
+    return { $client: client, $drizzle: db, execute };
   }),
 
   accessors: true,

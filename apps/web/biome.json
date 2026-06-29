@@ -1,7 +1,12 @@
 {
   "extends": "//",
   "files": {
-    "includes": ["src/**/*.{ts,tsx,css}", "*.{js,ts,json,jsonc}", "index.html"]
+    "includes": [
+      "src/**/*.{ts,tsx,css}",
+      "*.{js,ts,json,jsonc}",
+      "index.html",
+      "!src/routeTree.gen.ts"
+    ]
   },
   "formatter": {
     "includes": ["src/**/*.{ts,tsx,css}", "*.{js,ts,json,jsonc}", "index.html"]

@@ -1,10 +1,11 @@
+import { createAuth } from "@api/auth";
 import type { AppVariables } from "@api/hono/appVariables.defs";
 import { getCorsOrigins } from "@api/hono/getCorsOrigins";
 import { scalar } from "@api/http/openapi/scalar";
 import { openApiSpecOptions } from "@api/http/openapi/spec";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { openAPIRouteHandler } from "hono-openapi";
+import { cors } from "hono/cors";
 
 const app = new Hono<AppVariables>();
 
@@ -22,13 +23,36 @@ app.use(
   }),
 );
 
-app.get("/api/v1/health", async (c) => c.text("OK"));
+app.use("*", async (c, next) => {
+  if (new URL(c.req.url).pathname.startsWith("/api/auth/")) {
+    c.set("user", null);
+    c.set("session", null);
+
+    return await next();
+  }
+
+  const auth = await c.env.runtime.runPromise(createAuth());
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+
+  c.set("user", session?.user ?? null);
+  c.set("session", session?.session ?? null);
+
+  await next();
+});
+
+app.on(["GET", "POST"], "/api/auth/*", async (c) => {
+  const auth = await c.env.runtime.runPromise(createAuth());
+
+  return auth.handler(c.req.raw);
+});
+
+const routes = app.get("/api/v1/health", async (c) => c.text("OK"));
 
 // OpenAPI
-app
+routes
   .get("/api/v1/openapi.json", openAPIRouteHandler(app, openApiSpecOptions))
   .get("/api/v1/docs", scalar);
 
 export default app;
 
-export type App = typeof app;
+export type App = typeof routes;
