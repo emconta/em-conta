@@ -41,12 +41,9 @@ export default function CoreInputField<T extends InputType>({
         (typeof typedValue === "string" && type !== "string") ||
         (typeof typedValue === "number" && typeof typedValue !== "number")
       )
-        throw new Error(
-          "Resulting typedValue from mask is different from the expected type",
-          {
-            cause: typedValue,
-          }
-        );
+        throw new Error("Resulting typedValue from mask is different from the expected type", {
+          cause: typedValue,
+        });
 
       handleValueChange({ masked: masked.value, value: typedValue });
     },
@@ -60,8 +57,7 @@ export default function CoreInputField<T extends InputType>({
     value: string | number | null;
   }) {
     if (value === "") onValueChange({ masked, value: null });
-    else if (masked === "" && value === 0)
-      onValueChange({ masked, value: null });
+    else if (masked === "" && value === 0) onValueChange({ masked, value: null });
     else
       onValueChange({
         masked,
