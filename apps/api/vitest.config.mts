@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
 
 export default defineWorkersConfig({
@@ -6,6 +7,12 @@ export default defineWorkersConfig({
       workers: {
         wrangler: { configPath: "./wrangler.jsonc" },
       },
+    },
+  },
+
+  resolve: {
+    alias: {
+      "@api": resolve(import.meta.dirname, "src"),
     },
   },
 });

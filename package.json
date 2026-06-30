@@ -17,6 +17,10 @@
     "api:format:check": "pnpm --filter api exec biome format .",
     "api:test": "pnpm --filter api test",
     "api:typegen": "pnpm --filter api cf-typegen",
+    "api:db:migrate": "pnpm --filter api db:migrate",
+    "api:db:generate": "pnpm --filter api db:generate",
+    "api:db:studio": "pnpm --filter api db:studio",
+
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
     "web:deploy": "pnpm --filter web run deploy",

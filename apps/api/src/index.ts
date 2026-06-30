@@ -1,5 +1,13 @@
+import app from "@api/app";
+import { makeRuntime } from "@api/runtime";
+
 export default {
-  async fetch(_request, _env, _ctx): Promise<Response> {
-    return new Response("Hello World!");
+  async fetch(request, env): Promise<Response> {
+    const { runtime } = makeRuntime(env);
+
+    return app.fetch(request, {
+      ...env,
+      runtime,
+    });
   },
 } satisfies ExportedHandler<Env>;

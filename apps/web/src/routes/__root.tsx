@@ -1,0 +1,15 @@
+import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { Toaster } from "@web/components/ui/sonner";
+
+export const Route = createRootRoute({
+  component: RootComponent,
+});
+
+function RootComponent() {
+  return (
+    <>
+      <Outlet />
+      <Toaster position="bottom-center" richColors />
+    </>
+  );
+}
