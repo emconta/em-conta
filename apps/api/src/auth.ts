@@ -11,8 +11,10 @@ export function createAuth() {
     const env = yield* Env;
     const { $drizzle } = yield* Database;
 
+    const baseURL = new URL(env.BETTER_AUTH_URL);
+
     return betterAuth({
-      baseURL: env.BETTER_AUTH_URL,
+      baseURL: baseURL.toString(),
       secret: env.BETTER_AUTH_SECRET,
       trustedOrigins: getCorsOrigins(env.CORS_ORIGINS),
       database: drizzleAdapter($drizzle, {
@@ -24,6 +26,16 @@ export function createAuth() {
           clientId: env.GOOGLE_CLIENT_ID,
           clientSecret: env.GOOGLE_CLIENT_SECRET,
         },
+      },
+      advanced: {
+        crossSubDomainCookies: {
+          enabled: true,
+          domain: baseURL.hostname
+            .split(".")
+            .slice(-2, baseURL.hostname.split(".").length)
+            .join("."),
+        },
+        useSecureCookies: baseURL.protocol === "https:",
       },
     });
   });
