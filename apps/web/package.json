@@ -6,6 +6,7 @@
     "build": "vite build",
     "deploy": "wrangler pages deploy",
     "lint": "biome lint .",
+    "lint:fix": "biome lint --write --unsafe .",
     "format": "biome format --write .",
     "preview": "vite preview"
   },
