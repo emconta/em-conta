@@ -8,7 +8,7 @@ export type RenderFieldArgs = {
   label?: string;
   hideErrors?: boolean;
   isPristine: boolean;
-} & Pick<FieldWrapperProps, "classNames">;
+} & Pick<FieldWrapperProps, "classNames" | "required">;
 
 export default function renderField({
   fieldEl,
@@ -17,6 +17,7 @@ export default function renderField({
   isPristine,
   hideErrors,
   classNames,
+  required,
 }: RenderFieldArgs) {
   const isError = hideErrors ? false : (errors?.length ?? 0) > 0 && isPristine === false;
 
@@ -25,6 +26,7 @@ export default function renderField({
       label={label}
       errors={isError ? errors.map((err) => err.message) : undefined}
       classNames={classNames}
+      required={required}
     >
       {fieldEl(isError)}
     </FieldWrapper>

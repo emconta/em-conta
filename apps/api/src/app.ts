@@ -1,11 +1,12 @@
 import { createAuth } from "@api/auth";
+import { OnboardingController } from "@api/features/onboarding/onboarding.controller";
 import type { AppVariables } from "@api/hono/appVariables.defs";
 import { getCorsOrigins } from "@api/hono/getCorsOrigins";
 import { scalar } from "@api/http/openapi/scalar";
 import { openApiSpecOptions } from "@api/http/openapi/spec";
 import { Hono } from "hono";
-import { openAPIRouteHandler } from "hono-openapi";
 import { cors } from "hono/cors";
+import { openAPIRouteHandler } from "hono-openapi";
 
 const app = new Hono<AppVariables>();
 
@@ -46,7 +47,9 @@ app.on(["GET", "POST"], "/api/auth/*", async (c) => {
   return auth.handler(c.req.raw);
 });
 
-const routes = app.get("/api/v1/health", async (c) => c.text("OK"));
+const routes = app
+  .get("/api/v1/health", async (c) => c.text("OK"))
+  .route("/api/v1/onboarding", OnboardingController);
 
 // OpenAPI
 routes

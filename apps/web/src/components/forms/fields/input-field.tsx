@@ -20,6 +20,7 @@ export default function InputField<T extends InputType>({
   label,
   hideErrors,
   classNames,
+  required,
   ...props
 }: InputFieldProps<T>) {
   const field = useFieldContext();
@@ -36,7 +37,10 @@ export default function InputField<T extends InputType>({
   return renderField({
     fieldEl: (isError) => (
       <CoreInputField
-        onValueChange={({ value }) => field.setValue(value)}
+        onValueChange={({ value }) => {
+          console.log({ value });
+          field.setValue(value);
+        }}
         value={value}
         type={type}
         aria-invalid={isError}
@@ -50,5 +54,6 @@ export default function InputField<T extends InputType>({
     isPristine,
     label,
     classNames,
+    required,
   });
 }

@@ -10,3 +10,10 @@ export type AppVariables = {
     session: AuthSession["session"] | null;
   };
 };
+
+export type AuthVariables = {
+  Variables: {
+    user: NonNullable<AppVariables["Variables"]["user"]>;
+    session: NonNullable<AppVariables["Variables"]["session"]>;
+  };
+};
