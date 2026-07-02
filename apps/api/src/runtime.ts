@@ -10,6 +10,8 @@ import JournalRepo from "@api/features/journal/journal.repo";
 import { JournalService } from "@api/features/journal/journal.service";
 import OnboardingService from "@api/features/onboarding/onboarding.service";
 import ProductsRepo from "@api/features/products/products.repo";
+import ReceiptsRepo from "@api/features/receipts/receipts.repo";
+import { ReceiptsService } from "@api/features/receipts/receipts.service";
 import SalesRepo from "@api/features/sales/sales.repo";
 import { SalesService } from "@api/features/sales/sales.service";
 import { Layer, Logger, ManagedRuntime } from "effect";
@@ -26,6 +28,7 @@ export function makeRuntime(env: Cloudflare.Env) {
       AccountsChartsRepo.Default,
       JournalRepo.Default,
       ProductsRepo.Default,
+      ReceiptsRepo.Default,
       SalesRepo.Default,
       StockMovementsRepo.Default,
     ),
@@ -38,6 +41,7 @@ export function makeRuntime(env: Cloudflare.Env) {
       AccountsService.Default,
       JournalService.Default,
       InventoryService.Default,
+      ReceiptsService.Default,
       Layer.provide(SalesService.Default, InventoryService.Default),
     ),
     Layer.mergeAll(repoLayer, noDepsLayer, baseLayer),

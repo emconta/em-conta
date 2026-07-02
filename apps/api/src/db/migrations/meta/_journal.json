@@ -50,6 +50,13 @@
       "when": 1783021923074,
       "tag": "0006_flat_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783022419595,
+      "tag": "0007_living_quasimodo",
+      "breakpoints": true
     }
   ]
 }
