@@ -5,11 +5,21 @@ import { type AnyPgColumn, integer, pgTable, serial, varchar } from "drizzle-orm
 
 export type AccountCategory = "assets" | "liabilities" | "equity" | "revenue" | "expenses";
 export type AccountNature = "credit" | "debit";
+export type AccountKey =
+  | "cash"
+  | "bank_checking"
+  | "accounts_receivable"
+  | "inventory"
+  | "sales_revenue"
+  | "services_revenue"
+  | "cogs"
+  | "taxes_payable";
 
 export const accounts = pgTable("accounts", {
   id: serial().primaryKey(),
 
   name: varchar().notNull(),
+  key: varchar().$type<AccountKey | null>(),
   description: varchar(),
 
   category: varchar().notNull().$type<AccountCategory>(),

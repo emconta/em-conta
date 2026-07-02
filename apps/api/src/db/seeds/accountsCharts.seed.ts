@@ -11,11 +11,13 @@ const chart = {
       children: [
         {
           name: "Caixa",
+          key: "cash",
           nature: "debit",
           description: "Valores em especie para pequenas despesas.",
         },
         {
           name: "Banco conta movimento",
+          key: "bank_checking",
           nature: "debit",
           description: "Saldo em conta corrente usado na operacao diaria.",
         },
@@ -28,11 +30,13 @@ const chart = {
     },
     {
       name: "Clientes a receber",
+      key: "accounts_receivable",
       nature: "debit",
       description: "Vendas ou servicos faturados ainda nao recebidos.",
     },
     {
       name: "Estoque",
+      key: "inventory",
       nature: "debit",
       description: "Mercadorias ou insumos disponiveis para venda ou consumo.",
     },
@@ -50,6 +54,7 @@ const chart = {
     },
     {
       name: "Impostos a recolher",
+      key: "taxes_payable",
       nature: "credit",
       description: "Tributos incidentes sobre a operacao que aguardam pagamento.",
     },
@@ -89,11 +94,13 @@ const chart = {
   revenue: [
     {
       name: "Receita de vendas",
+      key: "sales_revenue",
       nature: "credit",
       description: "Entradas oriundas da venda de produtos.",
     },
     {
       name: "Receita de servicos",
+      key: "services_revenue",
       nature: "credit",
       description: "Entradas oriundas da prestacao de servicos.",
     },
@@ -111,6 +118,7 @@ const chart = {
       children: [
         {
           name: "Custo de mercadorias vendidas",
+          key: "cogs",
           nature: "debit",
           description: "Custo dos produtos revendidos ou produzidos.",
         },
