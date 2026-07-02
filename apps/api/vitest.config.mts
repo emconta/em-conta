@@ -13,6 +13,7 @@ export default defineWorkersConfig({
   resolve: {
     alias: {
       "@api": resolve(import.meta.dirname, "src"),
+      "@dto": resolve(import.meta.dirname, "../../packages/dto/src"),
     },
   },
 });
