@@ -5,6 +5,7 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "lint": "biome lint .",
+    "lint:fix": "biome lint --write --unsafe .",
     "format": "biome format --write .",
     "test": "vitest",
     "cf-typegen": "wrangler types",

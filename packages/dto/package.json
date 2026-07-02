@@ -1,0 +1,7 @@
+{
+  "name": "dto",
+  "type": "module",
+  "dependencies": {
+    "valibot": "catalog:"
+  }
+}

@@ -1,5 +1,10 @@
 import Database from "@api/db/database";
 import Env from "@api/env";
+import AccountsRepo from "@api/features/accounts/accounts.repo";
+import { AccountsService } from "@api/features/accounts/accounts.service";
+import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
+import CompaniesRepo from "@api/features/companies/companies.repo";
+import OnboardingService from "@api/features/onboarding/onboarding.service";
 import { Layer, Logger, ManagedRuntime } from "effect";
 
 export function makeRuntime(env: Cloudflare.Env) {
@@ -7,7 +12,20 @@ export function makeRuntime(env: Cloudflare.Env) {
 
   const baseLayer = Layer.provide(Layer.mergeAll(Database.Default), noDepsLayer);
 
-  const appLayer = Layer.mergeAll(noDepsLayer, baseLayer);
+  const repoLayer = Layer.provide(
+    Layer.mergeAll(CompaniesRepo.Default, AccountsRepo.Default, AccountsChartsRepo.Default),
+    Layer.mergeAll(noDepsLayer, baseLayer),
+  );
+
+  const serviceLayer = Layer.provide(
+    Layer.mergeAll(
+      Layer.provide(OnboardingService.Default, AccountsService.Default),
+      AccountsService.Default,
+    ),
+    Layer.mergeAll(repoLayer, noDepsLayer, baseLayer),
+  );
+
+  const appLayer = Layer.mergeAll(noDepsLayer, baseLayer, repoLayer, serviceLayer);
 
   const runtime = ManagedRuntime.make(appLayer);
 

@@ -1,8 +1,8 @@
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,7 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@web": resolve(__dirname, "./src"),
-      "@api": resolve(__dirname, "../api/src"),
+      "@dto": resolve(__dirname, "../../packages/dto/src"),
     },
   },
 });

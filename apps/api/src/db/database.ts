@@ -1,4 +1,4 @@
-import { makeDatabaseError } from "@api/db/databaseError";
+import { makeDatabaseError } from "@api/db/errors/makeDatabaseError";
 import * as schema from "@api/db/schema";
 import Env from "@api/env";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";

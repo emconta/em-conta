@@ -10,12 +10,23 @@ export interface FieldWrapperProps {
     | React.ReactNode
     | ((props: Pick<CoreInputFieldProps, "aria-invalid">) => React.ReactNode);
   classNames?: { label?: string; container?: string };
+  required?: boolean;
 }
 
-export default function FieldWrapper({ children, errors, label, classNames }: FieldWrapperProps) {
+export default function FieldWrapper({
+  children,
+  errors,
+  label,
+  classNames,
+  required,
+}: FieldWrapperProps) {
   return (
     <div className={cn("flex flex-col gap-2", classNames?.container)}>
-      {label && <Label className={cn(classNames?.label)}>{label}</Label>}
+      {label && (
+        <Label className={cn(classNames?.label)}>
+          {label} {required && <span className="text-destructive">*</span>}
+        </Label>
+      )}
 
       {typeof children === "function"
         ? children({ "aria-invalid": (errors?.length ?? 0) > 0 })
