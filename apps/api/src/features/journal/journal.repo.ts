@@ -22,6 +22,29 @@ export default class JournalRepo extends Effect.Service<JournalRepo>()("JournalR
       return db.execute((q) => q.insert(journalEntryLines).values(lines).returning());
     }
 
+    function createEntryWithLines(
+      entry: InsertJournalEntry,
+      lines: Omit<InsertJournalEntryLine, "entryId">[],
+    ) {
+      return db.execute((q) =>
+        q.transaction(async (tx) => {
+          const insertedEntries = await tx.insert(journalEntries).values(entry).returning();
+          const insertedEntry = insertedEntries[0];
+
+          if (!insertedEntry) {
+            throw new Error("Journal entry insert returned no rows.");
+          }
+
+          const insertedLines = await tx
+            .insert(journalEntryLines)
+            .values(lines.map((line) => ({ ...line, entryId: insertedEntry.id })))
+            .returning();
+
+          return { entry: insertedEntry, lines: insertedLines };
+        }),
+      );
+    }
+
     function getEntry({ id }: Pick<JournalEntry, "id">) {
       return db.execute((q) =>
         q.query.journalEntries.findFirst({
@@ -52,6 +75,13 @@ export default class JournalRepo extends Effect.Service<JournalRepo>()("JournalR
       );
     }
 
-    return { getEntry, insertEntry, insertLines, listEntriesByCompany, listLinesByEntry };
+    return {
+      createEntryWithLines,
+      getEntry,
+      insertEntry,
+      insertLines,
+      listEntriesByCompany,
+      listLinesByEntry,
+    };
   }),
 }) {}

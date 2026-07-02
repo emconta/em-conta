@@ -5,6 +5,7 @@ import { AccountsService } from "@api/features/accounts/accounts.service";
 import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import JournalRepo from "@api/features/journal/journal.repo";
+import { JournalService } from "@api/features/journal/journal.service";
 import OnboardingService from "@api/features/onboarding/onboarding.service";
 import { Layer, Logger, ManagedRuntime } from "effect";
 
@@ -27,6 +28,7 @@ export function makeRuntime(env: Cloudflare.Env) {
     Layer.mergeAll(
       Layer.provide(OnboardingService.Default, AccountsService.Default),
       AccountsService.Default,
+      JournalService.Default,
     ),
     Layer.mergeAll(repoLayer, noDepsLayer, baseLayer),
   );
