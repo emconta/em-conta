@@ -4,9 +4,12 @@ import AccountsRepo from "@api/features/accounts/accounts.repo";
 import { AccountsService } from "@api/features/accounts/accounts.service";
 import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
+import { InventoryService } from "@api/features/inventory/inventory.service";
+import StockMovementsRepo from "@api/features/inventory/stockMovements.repo";
 import JournalRepo from "@api/features/journal/journal.repo";
 import { JournalService } from "@api/features/journal/journal.service";
 import OnboardingService from "@api/features/onboarding/onboarding.service";
+import ProductsRepo from "@api/features/products/products.repo";
 import { Layer, Logger, ManagedRuntime } from "effect";
 
 export function makeRuntime(env: Cloudflare.Env) {
@@ -20,6 +23,8 @@ export function makeRuntime(env: Cloudflare.Env) {
       AccountsRepo.Default,
       AccountsChartsRepo.Default,
       JournalRepo.Default,
+      ProductsRepo.Default,
+      StockMovementsRepo.Default,
     ),
     Layer.mergeAll(noDepsLayer, baseLayer),
   );
@@ -29,6 +34,7 @@ export function makeRuntime(env: Cloudflare.Env) {
       Layer.provide(OnboardingService.Default, AccountsService.Default),
       AccountsService.Default,
       JournalService.Default,
+      InventoryService.Default,
     ),
     Layer.mergeAll(repoLayer, noDepsLayer, baseLayer),
   );
