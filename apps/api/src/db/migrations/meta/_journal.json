@@ -15,6 +15,13 @@
       "when": 1782928282810,
       "tag": "0001_luxuriant_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783004190191,
+      "tag": "0002_young_pete_wisdom",
+      "breakpoints": true
     }
   ]
 }
