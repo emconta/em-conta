@@ -1,12 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import DashboardPage from "@web/features/dashboard/dashboard.page";
-import { getOnboardingStatusOptions } from "@web/features/onboarding/onboarding.queries";
 
 export const Route = createFileRoute("/dashboard/")({
-  async beforeLoad(ctx) {
-    const { status } = await ctx.context.queryClient.fetchQuery(getOnboardingStatusOptions);
-
-    if (status !== "onboarded") throw redirect({ to: "/onboarding" });
-  },
   component: DashboardPage,
 });

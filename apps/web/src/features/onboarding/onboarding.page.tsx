@@ -1,36 +1,39 @@
 import { FinishOnboardingDto } from "@dto/onboarding.dto";
+import type { StandardSchemaV1Issue } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useAppForm } from "@web/components/forms/form-context";
 import { cnpjMask } from "@web/components/forms/input-field-masks";
 import LoadingButton from "@web/components/ui/loadingButton";
-import {
-  FinishOnboardingError,
-  useFinishOnboarding,
-} from "@web/features/onboarding/onboarding.queries";
+import { useFinishOnboarding } from "@web/features/onboarding/onboarding.queries";
 import { BriefcaseBusinessIcon, CheckIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OnboardingPage() {
+  const { mutateAsync: finishOnboarding, isPending: isFinishingOnboarding } = useFinishOnboarding();
+  const navigate = useNavigate();
+
   const form = useAppForm({
     defaultValues: {} as FinishOnboardingDto,
     validators: {
       onSubmit: FinishOnboardingDto,
-    },
-    onSubmit: ({ value }) => {
-      finishOnboarding(value);
-    },
-  });
+      onSubmitAsync: async ({ value }) => {
+        const result = await finishOnboarding(value);
 
-  const navigate = useNavigate();
+        if (result.isOk()) return navigate({ to: "/dashboard" });
 
-  const { mutate: finishOnboarding, isPending: isFinishingOnboarding } = useFinishOnboarding({
-    onSuccess() {
-      navigate({ to: "/dashboard" });
-    },
-    onError(error) {
-      if (error instanceof FinishOnboardingError) {
-        toast.error(error.message);
-      }
+        switch (result.error.code) {
+          case "CNPJ_ALREADY_EXISTS":
+            return {
+              fields: {
+                cnpj: [
+                  { message: "Esse CNPJ já está cadastrado." },
+                ] satisfies StandardSchemaV1Issue[],
+              },
+            };
+          default:
+            toast.error(result.error.message);
+        }
+      },
     },
   });
 

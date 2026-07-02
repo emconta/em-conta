@@ -1,4 +1,3 @@
-import type { Company } from "@api/db/schema/companies";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import type { FinishOnboardingDto } from "@dto/onboarding.dto";
 import { Effect, Option } from "effect";

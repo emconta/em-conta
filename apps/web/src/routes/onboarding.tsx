@@ -4,9 +4,9 @@ import { getOnboardingStatusOptions } from "@web/features/onboarding/onboarding.
 
 export const Route = createFileRoute("/onboarding")({
   async beforeLoad(ctx) {
-    const { status } = await ctx.context.queryClient.fetchQuery(getOnboardingStatusOptions);
+    const result = await ctx.context.queryClient.fetchQuery(getOnboardingStatusOptions);
 
-    if (status !== "pending") throw redirect({ to: "/dashboard" });
+    if (result.isOk() && result.value.status !== "pending") throw redirect({ to: "/onboarding" });
   },
   component: OnboardingPage,
 });
