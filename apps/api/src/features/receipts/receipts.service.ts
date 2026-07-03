@@ -1,7 +1,9 @@
 import type { Account, InsertReceipt } from "@api/db/schema";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
+import CompaniesRepo from "@api/features/companies/companies.repo";
 import ReceiptsRepo, { type ReceiptJournalEntry } from "@api/features/receipts/receipts.repo";
 import SalesRepo from "@api/features/sales/sales.repo";
+import type { CreateReceiptDto } from "@dto/receipts.dto";
 import { Data, Effect } from "effect";
 
 export type CreateReceiptInput = {
@@ -16,6 +18,7 @@ export type CreateReceiptInput = {
 export class ReceiptsService extends Effect.Service<ReceiptsService>()("ReceiptsService", {
   effect: Effect.gen(function* () {
     const accountsRepo = yield* AccountsRepo;
+    const companiesRepo = yield* CompaniesRepo;
     const receiptsRepo = yield* ReceiptsRepo;
     const salesRepo = yield* SalesRepo;
 
@@ -96,9 +99,42 @@ export class ReceiptsService extends Effect.Service<ReceiptsService>()("Receipts
       });
     }
 
-    return { create };
+    function createForUser(input: CreateReceiptDto & { userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId: input.userId });
+
+        if (!company) {
+          return yield* Effect.fail(new CreateReceiptError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const receiptDate = parseDate(input.receiptDate);
+
+        if (!receiptDate) {
+          return yield* Effect.fail(new CreateReceiptError({ code: "INVALID_DATE" }));
+        }
+
+        return yield* create({
+          companyId: company.id,
+          saleId: input.saleId,
+          receiptDate,
+          amount: input.amount,
+          cashAccountId: input.cashAccountId,
+          notes: input.notes ?? null,
+        });
+      });
+    }
+
+    return { create, createForUser };
   }),
+
+  accessors: true,
 }) {}
+
+function parseDate(value: string) {
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
 function resolveCashAccount(cashAccountId: number, companyAccounts: Account[]) {
   return Effect.gen(function* () {
@@ -147,8 +183,10 @@ function centsToMoney(cents: bigint) {
 
 export class CreateReceiptError extends Data.TaggedError("CreateReceiptError")<{
   readonly code:
+    | "COMPANY_NOT_FOUND"
     | "INVALID_AMOUNT"
     | "INVALID_CASH_ACCOUNT"
+    | "INVALID_DATE"
     | "MISSING_ACCOUNT"
     | "OVER_RECEIPT"
     | "SALE_NOT_FOUND"

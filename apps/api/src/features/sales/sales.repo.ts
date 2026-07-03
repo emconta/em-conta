@@ -11,6 +11,7 @@ import {
   sales,
   stockMovements,
   type Sale,
+  type SaleItem,
 } from "@api/db/schema";
 import { Effect } from "effect";
 
@@ -91,7 +92,17 @@ export default class SalesRepo extends Effect.Service<SalesRepo>()("SalesRepo", 
       );
     }
 
-    return { createPostedSale, getByCompanyAndId, listByCompany };
+    function listItemsBySale({ saleId }: Pick<SaleItem, "saleId">) {
+      return db.execute((q) =>
+        q.query.saleItems.findMany({
+          where(fields, operators) {
+            return operators.eq(fields.saleId, saleId);
+          },
+        }),
+      );
+    }
+
+    return { createPostedSale, getByCompanyAndId, listByCompany, listItemsBySale };
   }),
 }) {}
 

@@ -10,6 +10,7 @@ import JournalRepo from "@api/features/journal/journal.repo";
 import { JournalService } from "@api/features/journal/journal.service";
 import OnboardingService from "@api/features/onboarding/onboarding.service";
 import ProductsRepo from "@api/features/products/products.repo";
+import { ProductsService } from "@api/features/products/products.service";
 import ReceiptsRepo from "@api/features/receipts/receipts.repo";
 import { ReceiptsService } from "@api/features/receipts/receipts.service";
 import SalesRepo from "@api/features/sales/sales.repo";
@@ -39,6 +40,7 @@ export function makeRuntime(env: Cloudflare.Env) {
     Layer.mergeAll(
       Layer.provide(OnboardingService.Default, AccountsService.Default),
       AccountsService.Default,
+      ProductsService.Default,
       JournalService.Default,
       InventoryService.Default,
       ReceiptsService.Default,

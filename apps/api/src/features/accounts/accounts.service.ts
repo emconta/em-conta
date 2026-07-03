@@ -2,12 +2,14 @@ import type { DatabaseError } from "@api/db/errors/databaseError";
 import type { Account, AccountCategory, AccountInChart, InsertAccount } from "@api/db/schema";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
+import CompaniesRepo from "@api/features/companies/companies.repo";
 import { Data, Effect, Option } from "effect";
 
 export class AccountsService extends Effect.Service<AccountsService>()("AccountsService", {
   effect: Effect.gen(function* () {
     const accountsChartsRepo = yield* AccountsChartsRepo;
     const accountsRepo = yield* AccountsRepo;
+    const companiesRepo = yield* CompaniesRepo;
 
     function createAccountTree({
       accounts,
@@ -85,12 +87,40 @@ export class AccountsService extends Effect.Service<AccountsService>()("Accounts
       });
     }
 
-    return { createFromChart };
+    function listForUser({ userId }: { userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new ListAccountsServiceError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const accounts = yield* accountsRepo.listByCompany({ companyId: company.id });
+
+        return accounts.map((account) => ({
+          id: account.id,
+          name: account.name,
+          key: account.key,
+          description: account.description,
+          category: account.category,
+          nature: account.nature,
+          parentId: account.parentId,
+        }));
+      });
+    }
+
+    return { createFromChart, listForUser };
   }),
+
+  accessors: true,
 }) {}
 
 export class CreateFromChartAccountsServiceError extends Data.TaggedError(
   "CreateFromChartAccountsServiceError",
 )<{
   readonly code: "CHART_NOT_FOUND";
+}> {}
+
+export class ListAccountsServiceError extends Data.TaggedError("ListAccountsServiceError")<{
+  readonly code: "COMPANY_NOT_FOUND";
 }> {}
