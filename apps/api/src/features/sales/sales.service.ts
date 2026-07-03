@@ -7,11 +7,15 @@ import type {
   InsertStockMovement,
   SaleKind,
   SalePaymentTerms,
+  Sale,
+  SaleItem,
 } from "@api/db/schema";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
+import CompaniesRepo from "@api/features/companies/companies.repo";
 import { InventoryService } from "@api/features/inventory/inventory.service";
 import ProductsRepo from "@api/features/products/products.repo";
 import SalesRepo, { type PostedSaleJournalEntry } from "@api/features/sales/sales.repo";
+import type { CreateSaleDto, SaleDetailDto, SaleItemDto, SaleListItemDto } from "@dto/sales.dto";
 import { Data, Effect } from "effect";
 
 export type CreateSaleInput = {
@@ -35,6 +39,7 @@ export type CreateSaleItemInput = {
 export class SalesService extends Effect.Service<SalesService>()("SalesService", {
   effect: Effect.gen(function* () {
     const accountsRepo = yield* AccountsRepo;
+    const companiesRepo = yield* CompaniesRepo;
     const inventoryService = yield* InventoryService;
     const productsRepo = yield* ProductsRepo;
     const salesRepo = yield* SalesRepo;
@@ -212,6 +217,72 @@ export class SalesService extends Effect.Service<SalesService>()("SalesService",
       });
     }
 
+    function createForUser(input: CreateSaleDto & { userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId: input.userId });
+
+        if (!company) {
+          return yield* Effect.fail(new CreateSaleError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const issueDate = parseDate(input.issueDate);
+
+        if (!issueDate) {
+          return yield* Effect.fail(new CreateSaleError({ code: "INVALID_DATE" }));
+        }
+
+        return yield* create({
+          companyId: company.id,
+          paymentTerms: input.paymentTerms,
+          issueDate,
+          description: input.description ?? null,
+          customerName: input.customerName ?? null,
+          cashAccountId: input.cashAccountId,
+          discountAmount: input.discountAmount,
+          items: input.items,
+        });
+      });
+    }
+
+    function listForUser({ userId }: { userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new ReadSaleError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const sales = yield* salesRepo.listByCompany({ companyId: company.id });
+
+        return sales
+          .sort((a, b) => b.issueDate.getTime() - a.issueDate.getTime())
+          .map(toSaleListItemDto);
+      });
+    }
+
+    function getForUser({ id, userId }: { id: number; userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new ReadSaleError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const sale = yield* salesRepo.getByCompanyAndId({ companyId: company.id, id });
+
+        if (!sale) {
+          return yield* Effect.fail(new ReadSaleError({ code: "SALE_NOT_FOUND" }));
+        }
+
+        const items = yield* salesRepo.listItemsBySale({ saleId: sale.id });
+
+        return {
+          ...toSaleListItemDto(sale),
+          items: items.map(toSaleItemDto),
+        } satisfies SaleDetailDto;
+      });
+    }
+
     function getRequiredAccount(companyId: number, key: AccountKey) {
       return accountsRepo
         .getByCompanyAndKey({ companyId, key })
@@ -224,9 +295,46 @@ export class SalesService extends Effect.Service<SalesService>()("SalesService",
         );
     }
 
-    return { create };
+    return { create, createForUser, getForUser, listForUser };
   }),
+
+  accessors: true,
 }) {}
+
+function parseDate(value: string) {
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toSaleListItemDto(sale: Sale): SaleListItemDto {
+  return {
+    id: sale.id,
+    kind: sale.kind,
+    paymentTerms: sale.paymentTerms,
+    issueDate: sale.issueDate.toISOString(),
+    description: sale.description,
+    customerName: sale.customerName,
+    grossAmount: sale.grossAmount,
+    discountAmount: sale.discountAmount,
+    netAmount: sale.netAmount,
+    status: sale.status,
+  };
+}
+
+function toSaleItemDto(item: SaleItem): SaleItemDto {
+  return {
+    id: item.id,
+    productId: item.productId,
+    description: item.description,
+    type: item.type,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    lineAmount: item.lineAmount,
+    unitCostSnapshot: item.unitCostSnapshot,
+    lineCostAmount: item.lineCostAmount,
+  };
+}
 
 function resolveReceivingAccount(input: CreateSaleInput, companyAccounts: Account[]) {
   return Effect.gen(function* () {
@@ -304,12 +412,18 @@ function divideRound(numerator: bigint, denominator: bigint) {
 
 export class CreateSaleError extends Data.TaggedError("CreateSaleError")<{
   readonly code:
+    | "COMPANY_NOT_FOUND"
     | "EMPTY_ITEMS"
     | "INVALID_AMOUNT"
     | "INVALID_CASH_ACCOUNT"
+    | "INVALID_DATE"
     | "INVALID_QUANTITY"
     | "MISSING_ACCOUNT"
     | "MISSING_CASH_ACCOUNT"
     | "PRODUCT_NOT_FOUND"
     | "UNSUPPORTED_DISCOUNT";
+}> {}
+
+export class ReadSaleError extends Data.TaggedError("ReadSaleError")<{
+  readonly code: "COMPANY_NOT_FOUND" | "SALE_NOT_FOUND";
 }> {}
