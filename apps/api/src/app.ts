@@ -1,5 +1,6 @@
 import { createAuth } from "@api/auth";
 import { InternalController } from "@api/features/internal/internal.controller";
+import { JournalController } from "@api/features/journal/journal.controller";
 import { OnboardingController } from "@api/features/onboarding/onboarding.controller";
 import type { AppVariables } from "@api/hono/appVariables.defs";
 import { getCorsOrigins } from "@api/hono/getCorsOrigins";
@@ -51,6 +52,7 @@ app.on(["GET", "POST"], "/api/auth/*", async (c) => {
 const routes = app
   .get("/api/v1/health", async (c) => c.text("OK"))
   .route("/api/v1/internal", InternalController)
+  .route("/api/v1/journal", JournalController)
   .route("/api/v1/onboarding", OnboardingController);
 
 // OpenAPI

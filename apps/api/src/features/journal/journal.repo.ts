@@ -75,6 +75,16 @@ export default class JournalRepo extends Effect.Service<JournalRepo>()("JournalR
       );
     }
 
+    function listLinesByEntries(entryIds: number[]) {
+      return db.execute((q) =>
+        q.query.journalEntryLines.findMany({
+          where(fields, operators) {
+            return operators.inArray(fields.entryId, entryIds);
+          },
+        }),
+      );
+    }
+
     return {
       createEntryWithLines,
       getEntry,
@@ -82,6 +92,7 @@ export default class JournalRepo extends Effect.Service<JournalRepo>()("JournalR
       insertLines,
       listEntriesByCompany,
       listLinesByEntry,
+      listLinesByEntries,
     };
   }),
 }) {}
