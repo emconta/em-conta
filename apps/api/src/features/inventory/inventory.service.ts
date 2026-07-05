@@ -138,7 +138,10 @@ export class InventoryService extends Effect.Service<InventoryService>()("Invent
           return yield* Effect.fail(new InventoryServiceError({ code: "INVALID_AMOUNT" }));
         }
 
-        const totalCost = calculateStockIntakeTotalCost({ quantity: input.quantity, unitCost: input.unitCost });
+        const totalCost = calculateStockIntakeTotalCost({
+          quantity: input.quantity,
+          unitCost: input.unitCost,
+        });
 
         if (totalCost === null || totalCost <= 0n) {
           return yield* Effect.fail(new InventoryServiceError({ code: "INVALID_AMOUNT" }));
@@ -196,7 +199,8 @@ export function calculateStockPosition(
     const movementQuantity = quantityToUnits(movement.quantity);
     const movementCost = moneyToCents(movement.totalCost);
 
-    if (movementQuantity === null || movementCost === null) return "INVALID_STOCK_MOVEMENT" as const;
+    if (movementQuantity === null || movementCost === null)
+      return "INVALID_STOCK_MOVEMENT" as const;
 
     if (movement.type === "sale_issue") {
       quantity -= movementQuantity;

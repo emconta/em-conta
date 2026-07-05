@@ -49,6 +49,7 @@ const chart = {
   liabilities: [
     {
       name: "Fornecedores a pagar",
+      key: "accounts_payable",
       nature: "credit",
       description: "Compras e servicos contratados ainda nao pagos.",
     },

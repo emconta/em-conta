@@ -32,9 +32,9 @@ describe("stock position calculation", () => {
   });
 
   it("rejects malformed movement values", () => {
-    expect(calculateStockPosition([{ quantity: "1.0000", totalCost: "10.00", type: "purchase" }])).toBe(
-      "INVALID_STOCK_MOVEMENT",
-    );
+    expect(
+      calculateStockPosition([{ quantity: "1.0000", totalCost: "10.00", type: "purchase" }]),
+    ).toBe("INVALID_STOCK_MOVEMENT");
   });
 
   it("exposes zero-rounded stock intake totals for rejection by the service", () => {

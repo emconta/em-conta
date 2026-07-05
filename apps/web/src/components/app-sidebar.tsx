@@ -14,6 +14,7 @@ import {
 import {
   BarChart3Icon,
   BoxesIcon,
+  HandCoinsIcon,
   LandmarkIcon,
   LayoutDashboardIcon,
   NotebookPenIcon,
@@ -21,7 +22,6 @@ import {
   ReceiptTextIcon,
   ScaleIcon,
   SheetIcon,
-  TrendingUpIcon,
 } from "lucide-react";
 
 type User = {
@@ -36,6 +36,7 @@ const mainNav = [
   { icon: ScaleIcon, label: "Razão", url: "/dashboard/ledger" },
   { icon: BoxesIcon, label: "Produtos", url: "/dashboard/products" },
   { icon: ReceiptTextIcon, label: "Vendas", url: "/dashboard/sales" },
+  { icon: HandCoinsIcon, label: "Contas a Receber", url: "/dashboard/receivables" },
 ];
 
 const reportsNav = [

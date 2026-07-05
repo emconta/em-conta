@@ -6,6 +6,7 @@ import { JournalController } from "@api/features/journal/journal.controller";
 import { LedgerController } from "@api/features/ledger/ledger.controller";
 import { OnboardingController } from "@api/features/onboarding/onboarding.controller";
 import { ProductsController } from "@api/features/products/products.controller";
+import { ReceivablesController } from "@api/features/receivables/receivables.controller";
 import { ReceiptsController } from "@api/features/receipts/receipts.controller";
 import { ReportsController } from "@api/features/reports/reports.controller";
 import { SalesController } from "@api/features/sales/sales.controller";
@@ -65,6 +66,7 @@ const routes = app
   .route("/api/v1/journal", JournalController)
   .route("/api/v1/onboarding", OnboardingController)
   .route("/api/v1/products", ProductsController)
+  .route("/api/v1/receivables", ReceivablesController)
   .route("/api/v1/receipts", ReceiptsController)
   .route("/api/v1/reports", ReportsController)
   .route("/api/v1/sales", SalesController);

@@ -124,7 +124,19 @@ export class ReceiptsService extends Effect.Service<ReceiptsService>()("Receipts
       });
     }
 
-    return { create, createForUser };
+    function listForUser({ userId }: { userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new CreateReceiptError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        return yield* receiptsRepo.listByCompany({ companyId: company.id });
+      });
+    }
+
+    return { create, createForUser, listForUser };
   }),
 
   accessors: true,

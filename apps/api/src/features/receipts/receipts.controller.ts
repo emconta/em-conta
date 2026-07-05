@@ -9,6 +9,18 @@ import { validator } from "hono-openapi";
 
 export const ReceiptsController = new Hono<AppVariables & AuthVariables>()
   .use(ensureAuth)
+  .get("/", async (c) =>
+    runHonoHandler(
+      c,
+      ReceiptsService.listForUser({ userId: c.get("user").id }).pipe(
+        Effect.map((receipts) => c.json(receipts)),
+        Effect.catchIf(
+          (err) => err instanceof CreateReceiptError,
+          ({ code }) => Effect.succeed(c.json({ code }, 400)),
+        ),
+      ),
+    ),
+  )
   .post("/", validator("json", CreateReceiptDto), async (c) =>
     runHonoHandler(
       c,

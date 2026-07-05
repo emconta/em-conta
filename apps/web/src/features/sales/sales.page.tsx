@@ -215,7 +215,8 @@ export default function SalesPage() {
           <DialogHeader>
             <DialogTitle>Nova venda</DialogTitle>
             <DialogDescription>
-              Crie vendas à vista ou a prazo. Cadastre produtos/serviços antes se eles ainda não aparecerem na lista.
+              Crie vendas à vista ou a prazo. Cadastre produtos/serviços antes se eles ainda não
+              aparecerem na lista.
             </DialogDescription>
           </DialogHeader>
           <SaleForm
@@ -250,7 +251,9 @@ export default function SalesPage() {
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedSaleId ? `Venda #${selectedSaleId}` : "Detalhe da venda"}</DialogTitle>
+            <DialogTitle>
+              {selectedSaleId ? `Venda #${selectedSaleId}` : "Detalhe da venda"}
+            </DialogTitle>
             <DialogDescription>Detalhes da venda e itens lançados.</DialogDescription>
           </DialogHeader>
           <SaleDetail sale={selectedSale} loading={saleDetail.isLoading} />
@@ -435,7 +438,9 @@ function SaleForm({
                 disabled={items.length === 1}
                 aria-label={`Remover item ${index + 1}`}
                 onClick={() =>
-                  onUpdateItems((current) => current.filter((candidate) => candidate.key !== item.key))
+                  onUpdateItems((current) =>
+                    current.filter((candidate) => candidate.key !== item.key),
+                  )
                 }
               >
                 <Trash2Icon />
@@ -469,11 +474,16 @@ function SaleDetail({ loading, sale }: { loading: boolean; sale: SaleDetailDto |
           <strong>Venda #{sale.id}</strong>
           <span>R$ {sale.netAmount}</span>
         </div>
-        <p className="text-sm text-muted-foreground">{sale.customerName || "Cliente não informado"}</p>
+        <p className="text-sm text-muted-foreground">
+          {sale.customerName || "Cliente não informado"}
+        </p>
       </div>
       <div className="flex flex-col gap-2">
         {sale.items.map((item) => (
-          <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border p-3 text-sm">
+          <div
+            key={item.id}
+            className="flex items-start justify-between gap-3 rounded-lg border p-3 text-sm"
+          >
             <div className="flex flex-col gap-1">
               <strong className="font-medium">{item.description}</strong>
               <span className="text-muted-foreground">

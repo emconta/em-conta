@@ -120,7 +120,7 @@ Definition of done:
 
 ### 8. Receivables And Payables MVP
 
-Status: pending
+Status: completed
 
 Goal: cover the required Contas a Receber and Contas a Pagar scope without overbuilding.
 

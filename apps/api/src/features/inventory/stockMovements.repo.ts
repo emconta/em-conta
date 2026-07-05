@@ -49,7 +49,10 @@ export default class StockMovementsRepo extends Effect.Service<StockMovementsRep
       }) {
         return db.execute((q) =>
           q.transaction(async (tx) => {
-            const insertedMovements = await tx.insert(stockMovements).values(input.movement).returning();
+            const insertedMovements = await tx
+              .insert(stockMovements)
+              .values(input.movement)
+              .returning();
             const insertedMovement = insertedMovements[0];
 
             if (!insertedMovement) {

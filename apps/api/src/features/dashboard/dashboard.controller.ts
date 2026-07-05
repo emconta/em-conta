@@ -23,20 +23,24 @@ export const DashboardController = new Hono<AppVariables & AuthVariables>()
       ),
     ),
   )
-  .get("/monthly-revenue-expenses", validator("query", MonthlyRevenueExpensesQueryDto), async (c) => {
-    const { months } = c.req.valid("query");
+  .get(
+    "/monthly-revenue-expenses",
+    validator("query", MonthlyRevenueExpensesQueryDto),
+    async (c) => {
+      const { months } = c.req.valid("query");
 
-    return runHonoHandler(
-      c,
-      DashboardService.getMonthlyRevenueExpenses({
-        userId: c.get("user").id,
-        months: months ? Number(months) : 12,
-      }).pipe(
-        Effect.map((data) => c.json(data)),
-        Effect.catchIf(
-          (err) => err instanceof DashboardServiceError,
-          ({ code }) => Effect.succeed(c.json({ code }, 400)),
+      return runHonoHandler(
+        c,
+        DashboardService.getMonthlyRevenueExpenses({
+          userId: c.get("user").id,
+          months: months ? Number(months) : 12,
+        }).pipe(
+          Effect.map((data) => c.json(data)),
+          Effect.catchIf(
+            (err) => err instanceof DashboardServiceError,
+            ({ code }) => Effect.succeed(c.json({ code }, 400)),
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );

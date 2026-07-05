@@ -9,6 +9,7 @@ export type AccountKey =
   | "cash"
   | "bank_checking"
   | "accounts_receivable"
+  | "accounts_payable"
   | "inventory"
   | "sales_revenue"
   | "services_revenue"

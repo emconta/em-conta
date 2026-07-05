@@ -104,13 +104,21 @@ export default function ProductsPage() {
         accessorFn: (product) => product.stock?.averageUnitCost ?? "-",
         header: "Custo médio",
         cell: ({ row }) =>
-          row.original.stock ? <span>R$ {row.original.stock.averageUnitCost}</span> : <span>-</span>,
+          row.original.stock ? (
+            <span>R$ {row.original.stock.averageUnitCost}</span>
+          ) : (
+            <span>-</span>
+          ),
       },
       {
         accessorFn: (product) => product.stock?.totalCost ?? "-",
         header: "Custo total",
         cell: ({ row }) =>
-          row.original.stock ? <span className="font-medium">R$ {row.original.stock.totalCost}</span> : <span>-</span>,
+          row.original.stock ? (
+            <span className="font-medium">R$ {row.original.stock.totalCost}</span>
+          ) : (
+            <span>-</span>
+          ),
       },
     ],
     [],
@@ -211,7 +219,9 @@ export default function ProductsPage() {
               type="button"
               variant="outline"
               disabled={!productList.some((product) => product.trackInventory)}
-              onClick={() => setStockProduct(productList.find((product) => product.trackInventory) ?? null)}
+              onClick={() =>
+                setStockProduct(productList.find((product) => product.trackInventory) ?? null)
+              }
             >
               <PackagePlusIcon data-icon="inline-start" />
               Entrada de estoque
@@ -229,7 +239,8 @@ export default function ProductsPage() {
           <DialogHeader>
             <DialogTitle>Novo produto ou serviço</DialogTitle>
             <DialogDescription>
-              Cadastre itens vendidos e marque controle de estoque quando precisar acompanhar quantidade e custo médio.
+              Cadastre itens vendidos e marque controle de estoque quando precisar acompanhar
+              quantidade e custo médio.
             </DialogDescription>
           </DialogHeader>
           <ProductForm form={form} isPending={isPending} onChange={setForm} onSubmit={submit} />
@@ -248,7 +259,8 @@ export default function ProductsPage() {
               {stockProduct ? `Entrada de estoque: ${stockProduct.name}` : "Entrada de estoque"}
             </DialogTitle>
             <DialogDescription>
-              Registre compras pagas por caixa ou banco para atualizar quantidade, custo total e custo médio.
+              Registre compras pagas por caixa ou banco para atualizar quantidade, custo total e
+              custo médio.
             </DialogDescription>
           </DialogHeader>
           {stockProduct ? (
@@ -319,7 +331,9 @@ function ProductForm({
           <MoneyInput
             aria-label="Preço padrão"
             value={form.defaultSalePrice}
-            onValueChange={(value) => onChange((current) => ({ ...current, defaultSalePrice: value }))}
+            onValueChange={(value) =>
+              onChange((current) => ({ ...current, defaultSalePrice: value }))
+            }
           />
         </Field>
       </div>

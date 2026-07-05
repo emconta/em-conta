@@ -4,7 +4,13 @@ import { accounts } from "@api/db/schema/accounts";
 import { companies } from "@api/db/schema/companies";
 import { integer, numeric, pgTable, serial, timestamp, varchar } from "drizzle-orm/pg-core";
 
-export type JournalSourceType = "sale" | "receipt" | "stock_issue" | "purchase" | "manual" | "reversal";
+export type JournalSourceType =
+  | "sale"
+  | "receipt"
+  | "stock_issue"
+  | "purchase"
+  | "manual"
+  | "reversal";
 export type JournalEntryStatus = "posted" | "void";
 export type JournalEntryLineType = "debit" | "credit";
 

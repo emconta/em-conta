@@ -65,8 +65,12 @@ export class DashboardService extends Effect.Service<DashboardService>()("Dashbo
         }
 
         const today = new Date();
-        const dateTo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-        const dateFrom = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - months + 1, 1, 0, 0, 0, 0));
+        const dateTo = new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0, 23, 59, 59, 999),
+        );
+        const dateFrom = new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - months + 1, 1, 0, 0, 0, 0),
+        );
 
         const rows = yield* reportsRepo.listMonthlyRevenueExpenses({
           companyId: company.id,

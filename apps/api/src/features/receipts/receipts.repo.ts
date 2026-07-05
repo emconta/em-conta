@@ -56,7 +56,20 @@ export default class ReceiptsRepo extends Effect.Service<ReceiptsRepo>()("Receip
       );
     }
 
-    return { createPostedReceipt, listByCompanyAndSale };
+    function listByCompany({ companyId }: { companyId: number }) {
+      return db.execute((q) =>
+        q.query.receipts.findMany({
+          where(fields, operators) {
+            return operators.eq(fields.companyId, companyId);
+          },
+          orderBy(fields, { desc }) {
+            return [desc(fields.receiptDate)];
+          },
+        }),
+      );
+    }
+
+    return { createPostedReceipt, listByCompany, listByCompanyAndSale };
   }),
 }) {}
 

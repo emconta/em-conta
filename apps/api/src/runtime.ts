@@ -14,6 +14,8 @@ import { LedgerService } from "@api/features/ledger/ledger.service";
 import OnboardingService from "@api/features/onboarding/onboarding.service";
 import ProductsRepo from "@api/features/products/products.repo";
 import { ProductsService } from "@api/features/products/products.service";
+import ReceivablesRepo from "@api/features/receivables/receivables.repo";
+import { ReceivablesService } from "@api/features/receivables/receivables.service";
 import ReceiptsRepo from "@api/features/receipts/receipts.repo";
 import { ReceiptsService } from "@api/features/receipts/receipts.service";
 import ReportsRepo from "@api/features/reports/reports.repo";
@@ -35,6 +37,7 @@ export function makeRuntime(env: Cloudflare.Env) {
       JournalRepo.Default,
       LedgerRepo.Default,
       ProductsRepo.Default,
+      ReceivablesRepo.Default,
       ReceiptsRepo.Default,
       ReportsRepo.Default,
       SalesRepo.Default,
@@ -52,6 +55,7 @@ export function makeRuntime(env: Cloudflare.Env) {
       JournalService.Default,
       LedgerService.Default,
       InventoryService.Default,
+      ReceivablesService.Default,
       ReceiptsService.Default,
       ReportsService.Default,
       Layer.provide(SalesService.Default, InventoryService.Default),
