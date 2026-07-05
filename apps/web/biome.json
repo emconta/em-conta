@@ -9,7 +9,7 @@
     ]
   },
   "formatter": {
-    "includes": ["src/**/*.{ts,tsx,css}", "*.{js,ts,json,jsonc}", "index.html"]
+    "includes": ["src/**/*.{ts,tsx,css}", "*.{js,ts,json,jsonc}", "index.html", "!src/components/ui/**"]
   },
   "css": {
     "parser": {
@@ -17,6 +17,6 @@
     }
   },
   "linter": {
-    "includes": ["src/**/*.{ts,tsx}", "*.{js,ts}"]
+    "includes": ["src/**/*.{ts,tsx}", "*.{js,ts}", "!src/components/ui/**"]
   }
 }

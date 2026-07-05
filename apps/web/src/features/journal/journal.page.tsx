@@ -1,20 +1,57 @@
-import { Combobox } from "@base-ui/react/combobox";
 import type { AccountDto } from "@dto/accounts.dto";
-import type { CreateManualJournalEntryDto } from "@dto/journal.dto";
+import type {
+  CreateManualJournalEntryDto,
+  JournalEntryDetailDto,
+  JournalEntryListItemDto,
+} from "@dto/journal.dto";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card";
+import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxLabel,
+  ComboboxList,
+} from "@web/components/ui/combobox";
+import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@web/components/ui/dialog";
+import { Field, FieldLabel } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
-import { Label } from "@web/components/ui/label";
 import LoadingButton from "@web/components/ui/loadingButton";
+import { MoneyInput } from "@web/components/ui/masked-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@web/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@web/components/ui/table";
 import { useAccounts } from "@web/features/accounts/accounts.queries";
 import {
   listJournalEntriesOptions,
   useCreateManualJournalEntry,
   useJournalEntries,
+  useJournalEntry,
 } from "@web/features/journal/journal.queries";
-import { cn } from "@web/lib/utils";
-import { CheckIcon, ChevronsUpDownIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, Trash2Icon } from "lucide-react";
 import type * as React from "react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -31,17 +68,90 @@ const today = new Date().toISOString().slice(0, 10);
 
 export default function JournalPage() {
   const queryClient = useQueryClient();
-  const accounts = useAccounts();
   const entries = useJournalEntries();
   const { isPending, mutateAsync } = useCreateManualJournalEntry();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
+  const entryDetail = useJournalEntry(selectedEntryId);
   const [entryDate, setEntryDate] = useState(today);
   const [memo, setMemo] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([newDraftLine("debit"), newDraftLine("credit")]);
 
-  const accountList = accounts.data?.isOk() ? accounts.data.value : [];
   const entryList = entries.data?.isOk() ? entries.data.value : [];
+  const selectedEntry = entryDetail.data?.isOk() ? entryDetail.data.value : null;
+  const filteredEntries = entryList.filter((entry) => {
+    const matchesSource = sourceFilter === "all" || entry.sourceType === sourceFilter;
+    const matchesStatus = statusFilter === "all" || entry.status === statusFilter;
+
+    return matchesSource && matchesStatus;
+  });
   const totals = useMemo(() => sumLines(lines), [lines]);
   const isBalanced = totals.debit > 0 && totals.debit === totals.credit;
+  const columns = useMemo<ColumnDef<JournalEntryListItemDto>[]>(
+    () => [
+      {
+        accessorFn: (entry) => `#${entry.id}`,
+        header: "Lançamento",
+        cell: ({ row }) => <strong className="font-medium">#{row.original.id}</strong>,
+      },
+      {
+        accessorFn: (entry) => new Date(entry.entryDate).toLocaleDateString("pt-BR"),
+        header: "Data",
+      },
+      {
+        accessorFn: (entry) => entry.memo ?? "Sem histórico",
+        header: "Histórico",
+      },
+      {
+        accessorFn: (entry) => sourceLabel(entry.sourceType),
+        header: "Origem",
+      },
+      {
+        accessorKey: "totalDebits",
+        header: "Débitos",
+        cell: ({ row }) => <span>R$ {row.original.totalDebits}</span>,
+      },
+      {
+        accessorKey: "totalCredits",
+        header: "Créditos",
+        cell: ({ row }) => <span>R$ {row.original.totalCredits}</span>,
+      },
+      {
+        accessorFn: (entry) => (entry.status === "posted" ? "Postado" : "Estornado"),
+        header: "Status",
+      },
+    ],
+    [],
+  );
+  const filters: DataTableFilter[] = [
+    {
+      id: "sourceType",
+      label: "Origem",
+      value: sourceFilter,
+      onChange: setSourceFilter,
+      options: [
+        { label: "Todas", value: "all" },
+        { label: "Manual", value: "manual" },
+        { label: "Venda", value: "sale" },
+        { label: "Estoque", value: "stock_issue" },
+        { label: "Compra", value: "purchase" },
+        { label: "Recebimento", value: "receipt" },
+      ],
+    },
+    {
+      id: "status",
+      label: "Status",
+      value: statusFilter,
+      onChange: setStatusFilter,
+      options: [
+        { label: "Todos", value: "all" },
+        { label: "Postados", value: "posted" },
+        { label: "Estornados", value: "void" },
+      ],
+    },
+  ];
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,6 +180,7 @@ export default function JournalPage() {
     }
 
     toast.success(`Lançamento #${result.value.id} criado.`);
+    setCreateOpen(false);
     setMemo("");
     setLines([newDraftLine("debit"), newDraftLine("credit")]);
     await queryClient.invalidateQueries({ queryKey: listJournalEntriesOptions.queryKey });
@@ -79,187 +190,275 @@ export default function JournalPage() {
     <div className="flex w-full flex-col gap-6">
       <section className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Partidas dobradas</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Novo lançamento</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Lançamentos</h1>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Lançamento manual</CardTitle>
-            <CardDescription>
-              O total de débitos deve ser igual ao total de créditos antes de salvar.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="flex flex-col gap-5" onSubmit={submit}>
-              <div className="grid gap-4 md:grid-cols-[180px_1fr]">
-                <Field label="Data">
-                  <Input
-                    required
-                    type="date"
-                    value={entryDate}
-                    onChange={(event) => setEntryDate(event.target.value)}
-                  />
-                </Field>
+      <DataTable
+        columns={columns}
+        data={filteredEntries}
+        emptyMessage="Nenhum lançamento criado ainda."
+        filters={filters}
+        getRowId={(entry) => String(entry.id)}
+        isLoading={entries.isLoading}
+        searchPlaceholder="Buscar por histórico, origem, data ou valor..."
+        onRowClick={(entry) => setSelectedEntryId(entry.id)}
+        actions={
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            Novo lançamento
+          </Button>
+        }
+      />
 
-                <Field label="Histórico">
-                  <Input
-                    required
-                    value={memo}
-                    placeholder="Ex.: Capital inicial"
-                    onChange={(event) => setMemo(event.target.value)}
-                  />
-                </Field>
-              </div>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Novo lançamento</DialogTitle>
+            <DialogDescription>
+              Crie partidas dobradas manuais. Débitos e créditos precisam fechar antes de salvar.
+            </DialogDescription>
+          </DialogHeader>
+          <JournalForm
+            entryDate={entryDate}
+            isBalanced={isBalanced}
+            isPending={isPending}
+            lines={lines}
+            memo={memo}
+            totals={totals}
+            onEntryDateChange={setEntryDate}
+            onLinesChange={setLines}
+            onMemoChange={setMemo}
+            onSubmit={submit}
+          />
+        </DialogContent>
+      </Dialog>
 
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-medium">Partidas</h2>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setLines((current) => [...current, newDraftLine("debit")])}
-                  >
-                    <PlusIcon data-icon="inline-start" />
-                    Adicionar partida
-                  </Button>
-                </div>
-
-                {lines.map((line, index) => (
-                  <div
-                    key={line.key}
-                    className="grid gap-3 rounded-xl border bg-background p-3 md:grid-cols-[1fr_130px_130px_1fr_auto]"
-                  >
-                    <AccountCombobox
-                      accounts={accountList}
-                      label="Conta"
-                      value={line.accountId}
-                      onChange={(accountId) => updateLine(line.key, { accountId }, setLines)}
-                    />
-
-                    <Field label="Tipo">
-                      <select
-                        className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                        value={line.type}
-                        onChange={(event) =>
-                          updateLine(
-                            line.key,
-                            {
-                              type: event.target
-                                .value as CreateManualJournalEntryDto["lines"][number]["type"],
-                            },
-                            setLines,
-                          )
-                        }
-                      >
-                        <option value="debit">Débito</option>
-                        <option value="credit">Crédito</option>
-                      </select>
-                    </Field>
-
-                    <Field label="Valor">
-                      <Input
-                        required
-                        inputMode="decimal"
-                        value={line.amount}
-                        placeholder="1000.00"
-                        onChange={(event) =>
-                          updateLine(line.key, { amount: event.target.value }, setLines)
-                        }
-                      />
-                    </Field>
-
-                    <Field label="Descrição">
-                      <Input
-                        value={line.description}
-                        placeholder="Opcional"
-                        onChange={(event) =>
-                          updateLine(line.key, { description: event.target.value }, setLines)
-                        }
-                      />
-                    </Field>
-
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={lines.length === 2}
-                        aria-label={`Remover partida ${index + 1}`}
-                        onClick={() =>
-                          setLines((current) =>
-                            current.filter((candidate) => candidate.key !== line.key),
-                          )
-                        }
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                className="flex flex-col gap-3 rounded-xl bg-muted p-4 md:flex-row md:items-center md:justify-between"
-                data-balanced={isBalanced}
-              >
-                <div className="grid gap-3 text-sm md:grid-cols-3">
-                  <Summary label="Débitos" value={totals.debit} />
-                  <Summary label="Créditos" value={totals.credit} />
-                  <Summary label="Diferença" value={Math.abs(totals.debit - totals.credit)} />
-                </div>
-                <LoadingButton loading={isPending ? { text: "Salvando..." } : false}>
-                  Salvar lançamento
-                </LoadingButton>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Lançamentos recentes</CardTitle>
-            <CardDescription>{entryList.length} lançamento(s) encontrados.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {entries.isLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando...</p>
-            ) : null}
-            {entries.data?.isErr() ? (
-              <p className="text-sm text-destructive">Não foi possível carregar lançamentos.</p>
-            ) : null}
-            <div className="flex flex-col gap-2">
-              {entryList.slice(0, 8).map((entry) => (
-                <div key={entry.id} className="rounded-xl border bg-background p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1">
-                      <strong className="font-medium">
-                        #{entry.id} · {entry.memo}
-                      </strong>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(entry.entryDate).toLocaleDateString("pt-BR")} · {entry.sourceType}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium">R$ {entry.totalDebits}</span>
-                  </div>
-                </div>
-              ))}
-              {!entries.isLoading && entryList.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum lançamento criado ainda.</p>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Dialog
+        open={selectedEntryId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEntryId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedEntryId ? `Lançamento #${selectedEntryId}` : "Detalhe do lançamento"}
+            </DialogTitle>
+            <DialogDescription>
+              Partidas de débito e crédito do lançamento selecionado.
+            </DialogDescription>
+          </DialogHeader>
+          <JournalDetail entry={selectedEntry} loading={entryDetail.isLoading} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function Field({ children, label }: { children: React.ReactNode; label: string }) {
+function JournalForm({
+  entryDate,
+  isBalanced,
+  isPending,
+  lines,
+  memo,
+  onEntryDateChange,
+  onLinesChange,
+  onMemoChange,
+  onSubmit,
+  totals,
+}: {
+  entryDate: string;
+  isBalanced: boolean;
+  isPending: boolean;
+  lines: DraftLine[];
+  memo: string;
+  onEntryDateChange: (value: string) => void;
+  onLinesChange: React.Dispatch<React.SetStateAction<DraftLine[]>>;
+  onMemoChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  totals: { credit: number; debit: number };
+}) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      {children}
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+      <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+        <Field>
+          <FieldLabel htmlFor="journal-date">Data</FieldLabel>
+          <Input
+            id="journal-date"
+            required
+            type="date"
+            value={entryDate}
+            onChange={(event) => onEntryDateChange(event.target.value)}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="journal-memo">Histórico</FieldLabel>
+          <Input
+            id="journal-memo"
+            required
+            value={memo}
+            placeholder="Ex.: Capital inicial"
+            onChange={(event) => onMemoChange(event.target.value)}
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-medium">Partidas</h3>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onLinesChange((current) => [...current, newDraftLine("debit")])}
+          >
+            <PlusIcon data-icon="inline-start" />
+            Adicionar partida
+          </Button>
+        </div>
+
+        {lines.map((line, index) => (
+          <div
+            key={line.key}
+            className="grid gap-3 rounded-xl border bg-background p-3 md:grid-cols-[1fr_140px_140px_1fr_auto]"
+          >
+            <AccountCombobox
+              accountId={line.accountId}
+              onChange={(accountId) => updateLine(line.key, { accountId }, onLinesChange)}
+            />
+
+            <Field>
+              <FieldLabel>Tipo</FieldLabel>
+              <Select
+                value={line.type}
+                onValueChange={(value) =>
+                  updateLine(
+                    line.key,
+                    { type: value as CreateManualJournalEntryDto["lines"][number]["type"] },
+                    onLinesChange,
+                  )
+                }
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label="Tipo da partida">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="debit">Débito</SelectItem>
+                  <SelectItem value="credit">Crédito</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel>Valor</FieldLabel>
+              <MoneyInput
+                aria-label={`Valor da partida ${index + 1}`}
+                value={line.amount}
+                onValueChange={(value) => updateLine(line.key, { amount: value }, onLinesChange)}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel>Descrição</FieldLabel>
+              <Input
+                value={line.description}
+                placeholder="Opcional"
+                onChange={(event) =>
+                  updateLine(line.key, { description: event.target.value }, onLinesChange)
+                }
+              />
+            </Field>
+
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={lines.length === 2}
+                aria-label={`Remover partida ${index + 1}`}
+                onClick={() =>
+                  onLinesChange((current) =>
+                    current.filter((candidate) => candidate.key !== line.key),
+                  )
+                }
+              >
+                <Trash2Icon />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="flex flex-col gap-3 rounded-xl bg-muted p-4 md:flex-row md:items-center md:justify-between"
+        data-balanced={isBalanced}
+      >
+        <div className="grid gap-3 text-sm md:grid-cols-3">
+          <Summary label="Débitos" value={totals.debit} />
+          <Summary label="Créditos" value={totals.credit} />
+          <Summary label="Diferença" value={Math.abs(totals.debit - totals.credit)} />
+        </div>
+        <LoadingButton loading={isPending ? { text: "Salvando..." } : false}>
+          Salvar lançamento
+        </LoadingButton>
+      </div>
+    </form>
+  );
+}
+
+function JournalDetail({
+  entry,
+  loading,
+}: {
+  entry: JournalEntryDetailDto | null;
+  loading: boolean;
+}) {
+  if (loading) return <p className="text-sm text-muted-foreground">Carregando detalhe...</p>;
+  if (!entry) return <p className="text-sm text-muted-foreground">Selecione um lançamento.</p>;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-xl bg-muted p-3">
+        <div className="flex items-center justify-between gap-3">
+          <strong>{entry.memo ?? "Sem histórico"}</strong>
+          <span>{sourceLabel(entry.sourceType)}</span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {new Date(entry.entryDate).toLocaleDateString("pt-BR")}
+        </p>
+      </div>
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader className="bg-muted/70">
+            <TableRow>
+              <TableHead>Conta</TableHead>
+              <TableHead className="text-right">Débito</TableHead>
+              <TableHead className="text-right">Crédito</TableHead>
+              <TableHead>Descrição</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {entry.lines.map((line) => (
+              <TableRow key={line.id}>
+                <TableCell className="font-medium">{line.accountName}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {line.type === "debit" ? `R$ ${line.amount}` : ""}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {line.type === "credit" ? `R$ ${line.amount}` : ""}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{line.description ?? "-"}</TableCell>
+              </TableRow>
+            ))}
+            <TableRow className="border-t-2 font-medium">
+              <TableCell>Totais</TableCell>
+              <TableCell className="text-right tabular-nums">R$ {entry.totalDebits}</TableCell>
+              <TableCell className="text-right tabular-nums">R$ {entry.totalCredits}</TableCell>
+              <TableCell />
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
@@ -280,22 +479,20 @@ type AccountGroup = {
 };
 
 function AccountCombobox({
-  accounts,
-  label,
+  accountId,
   onChange,
-  value,
 }: {
-  accounts: AccountDto[];
-  label: string;
+  accountId: string;
   onChange: (value: string) => void;
-  value: string;
 }) {
-  const selectedAccount = accounts.find((account) => String(account.id) === value) ?? null;
+  const accounts = useAccountsList();
+  const selectedAccount = accounts.find((account) => String(account.id) === accountId) ?? null;
   const groups = useMemo(() => groupAccounts(accounts), [accounts]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <Combobox.Root
+    <Field>
+      <FieldLabel>Conta</FieldLabel>
+      <Combobox
         items={groups}
         value={selectedAccount}
         itemToStringLabel={(item: AccountDto | AccountGroup) =>
@@ -303,79 +500,38 @@ function AccountCombobox({
         }
         onValueChange={(account) => onChange(account ? String(account.id) : "")}
       >
-        <Combobox.Label className="flex items-center gap-2 text-sm leading-none font-medium select-none">
-          {label}
-        </Combobox.Label>
-        <Combobox.Trigger
-          className={cn(
-            "flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors",
-            "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-            !selectedAccount && "text-muted-foreground",
-          )}
-        >
-          <span className="truncate">{selectedAccount?.name ?? "Selecione"}</span>
-          <Combobox.Icon>
-            <ChevronsUpDownIcon />
-          </Combobox.Icon>
-        </Combobox.Trigger>
-
-        <Combobox.Portal>
-          <Combobox.Positioner align="start" sideOffset={4}>
-            <Combobox.Popup
-              className="min-w-[var(--anchor-width)] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-md"
-              aria-label="Selecionar conta"
-            >
-              <Combobox.Input
-                className="h-9 w-full border-b bg-background px-3 text-sm outline-none placeholder:text-muted-foreground"
-                placeholder="Buscar conta..."
-              />
-              <div className="max-h-72 overflow-y-auto p-1">
-                <Combobox.Empty>
-                  <div className="px-2 py-3 text-center text-sm text-muted-foreground">
-                    Nenhuma conta encontrada.
-                  </div>
-                </Combobox.Empty>
-                <Combobox.List>
-                  {(group: AccountGroup) => (
-                    <Combobox.Group key={group.label} items={group.items} className="py-1">
-                      <Combobox.GroupLabel className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                        {group.label}
-                      </Combobox.GroupLabel>
-                      <Combobox.Collection>
-                        {(account: AccountDto) => (
-                          <Combobox.Item
-                            key={account.id}
-                            value={account}
-                            className={cn(
-                              "flex cursor-default items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none",
-                              "data-[highlighted]:bg-muted data-[highlighted]:text-foreground",
-                            )}
-                          >
-                            <Combobox.ItemIndicator className="flex size-4 items-center justify-center text-primary">
-                              <CheckIcon />
-                            </Combobox.ItemIndicator>
-                            <span className="flex min-w-0 flex-col">
-                              <span className="truncate">{account.name}</span>
-                              <span className="truncate text-xs text-muted-foreground">
-                                {account.nature === "debit"
-                                  ? "Natureza devedora"
-                                  : "Natureza credora"}
-                                {account.key ? ` · ${account.key}` : ""}
-                              </span>
-                            </span>
-                          </Combobox.Item>
-                        )}
-                      </Combobox.Collection>
-                    </Combobox.Group>
+        <ComboboxInput placeholder="Selecione a conta" />
+        <ComboboxContent>
+          <ComboboxEmpty>Nenhuma conta encontrada.</ComboboxEmpty>
+          <ComboboxList>
+            {(group: AccountGroup) => (
+              <ComboboxGroup key={group.label} items={group.items}>
+                <ComboboxLabel>{group.label}</ComboboxLabel>
+                <ComboboxCollection>
+                  {(account: AccountDto) => (
+                    <ComboboxItem key={account.id} value={account}>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{account.name}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {account.nature === "debit" ? "Natureza devedora" : "Natureza credora"}
+                          {account.key ? ` · ${account.key}` : ""}
+                        </span>
+                      </span>
+                    </ComboboxItem>
                   )}
-                </Combobox.List>
-              </div>
-            </Combobox.Popup>
-          </Combobox.Positioner>
-        </Combobox.Portal>
-      </Combobox.Root>
-    </div>
+                </ComboboxCollection>
+              </ComboboxGroup>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    </Field>
   );
+}
+
+function useAccountsList() {
+  const accounts = useAccounts();
+  return accounts.data?.isOk() ? accounts.data.value : [];
 }
 
 function groupAccounts(accounts: AccountDto[]) {
@@ -458,6 +614,23 @@ function sumLines(lines: DraftLine[]) {
 
 function formatMoney(value: number) {
   return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function sourceLabel(sourceType: JournalEntryListItemDto["sourceType"]) {
+  switch (sourceType) {
+    case "manual":
+      return "Manual";
+    case "purchase":
+      return "Compra";
+    case "receipt":
+      return "Recebimento";
+    case "reversal":
+      return "Estorno";
+    case "sale":
+      return "Venda";
+    case "stock_issue":
+      return "Baixa de estoque";
+  }
 }
 
 function journalErrorMessage(code: string) {

@@ -9,6 +9,15 @@ Use this as the durable PR plan for building the remaining classroom/demo MVP. K
 - Backend first when a slice needs new data/API behavior; frontend after the API shape is stable.
 - Each slice should end with focused validation, then `code-reviewer` review of the diff.
 - Mark a slice complete only after code, tests or focused checks, and review fixes are done.
+- Frontend list/detail screens should use the table-first UX: `@tanstack/react-table` with search, filters, top action buttons, create/edit modals, and row-click detail modals. Avoid returning to large inline create forms plus clumsy card lists.
+- Sales screens must keep a visible shortcut to create products/services before selling.
+
+## UI Pattern Baseline
+
+- Use reusable table and modal components for operational modules such as vendas, produtos/estoque, lançamentos, ledger, reports, receivables, and payables.
+- Page body should prioritize the table; creation forms belong in modals opened from a top action button.
+- Clicking a table row should open a detail modal when detail data exists.
+- Tables should provide at least text search and the most useful MVP filters for the module.
 
 ## PR Slices
 

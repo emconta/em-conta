@@ -1,12 +1,28 @@
 import type { CreateSaleDto, SaleDetailDto, SaleListItemDto } from "@dto/sales.dto";
+import type { ProductDto } from "@dto/products.dto";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card";
+import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@web/components/ui/dialog";
+import { Field, FieldLabel } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
-import { Label } from "@web/components/ui/label";
-import LoadingButton from "@web/components/ui/loadingButton";
+import { MoneyInput, QuantityInput } from "@web/components/ui/masked-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@web/components/ui/select";
 import { Separator } from "@web/components/ui/separator";
+import LoadingButton from "@web/components/ui/loadingButton";
 import { useAccounts } from "@web/features/accounts/accounts.queries";
 import { useProducts } from "@web/features/products/products.queries";
 import {
@@ -36,6 +52,8 @@ export default function SalesPage() {
   const products = useProducts();
   const sales = useSales();
   const { isPending, mutateAsync } = useCreateSale();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState("all");
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const saleDetail = useSale(selectedSaleId);
   const [paymentTerms, setPaymentTerms] = useState<CreateSaleDto["paymentTerms"]>("cash");
@@ -52,6 +70,9 @@ export default function SalesPage() {
     (account) => account.key === "cash" || account.key === "bank_checking",
   );
   const selectedSale = saleDetail.data?.isOk() ? saleDetail.data.value : null;
+  const filteredSales = saleList.filter(
+    (sale) => paymentFilter === "all" || sale.paymentTerms === paymentFilter,
+  );
   const total = useMemo(
     () =>
       items.reduce((sum, item) => {
@@ -62,6 +83,51 @@ export default function SalesPage() {
       }, 0),
     [items],
   );
+
+  const columns = useMemo<ColumnDef<SaleListItemDto>[]>(
+    () => [
+      {
+        accessorFn: (sale) => `Venda #${sale.id}`,
+        header: "Venda",
+        cell: ({ row }) => <strong className="font-medium">Venda #{row.original.id}</strong>,
+      },
+      {
+        accessorFn: (sale) => new Date(sale.issueDate).toLocaleDateString("pt-BR"),
+        header: "Data",
+      },
+      {
+        accessorFn: (sale) => sale.customerName ?? "Cliente não informado",
+        header: "Cliente",
+      },
+      {
+        accessorFn: (sale) => (sale.paymentTerms === "cash" ? "À vista" : "A prazo"),
+        header: "Pagamento",
+      },
+      {
+        accessorKey: "netAmount",
+        header: "Total",
+        cell: ({ row }) => <span className="font-medium">R$ {row.original.netAmount}</span>,
+      },
+      {
+        accessorFn: (sale) => (sale.status === "posted" ? "Postada" : "Estornada"),
+        header: "Status",
+      },
+    ],
+    [],
+  );
+  const filters: DataTableFilter[] = [
+    {
+      id: "paymentTerms",
+      label: "Pagamento",
+      value: paymentFilter,
+      onChange: setPaymentFilter,
+      options: [
+        { label: "Todos", value: "all" },
+        { label: "À vista", value: "cash" },
+        { label: "A prazo", value: "credit" },
+      ],
+    },
+  ];
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,6 +155,7 @@ export default function SalesPage() {
 
     toast.success(`Venda #${result.value.saleId} criada.`);
     setSelectedSaleId(result.value.saleId);
+    setCreateOpen(false);
     setItems([newDraftItem()]);
     setCustomerName("");
     setDescription("");
@@ -117,286 +184,306 @@ export default function SalesPage() {
       <section className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">Vendas</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Criar venda</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Vendas</h1>
         </div>
-        <Button variant="outline" asChild>
-          <Link to="/dashboard/products">Cadastrar produto ou serviço</Link>
-        </Button>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Nova venda</CardTitle>
-            <CardDescription>
-              Para testar agora, prefira serviços ou produtos sem estoque controlado.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="flex flex-col gap-5" onSubmit={submit}>
-              <div className="grid gap-4 md:grid-cols-4">
-                <Field label="Data">
-                  <Input
-                    type="date"
-                    value={issueDate}
-                    onChange={(event) => setIssueDate(event.target.value)}
-                  />
-                </Field>
+      <DataTable
+        columns={columns}
+        data={filteredSales}
+        emptyMessage="Nenhuma venda lançada ainda."
+        filters={filters}
+        getRowId={(sale) => String(sale.id)}
+        isLoading={sales.isLoading}
+        searchPlaceholder="Buscar por venda, cliente, data ou status..."
+        onRowClick={(sale) => setSelectedSaleId(sale.id)}
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/products">Cadastrar produto/serviço</Link>
+            </Button>
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              <PlusIcon data-icon="inline-start" />
+              Nova venda
+            </Button>
+          </>
+        }
+      />
 
-                <Field label="Pagamento">
-                  <select
-                    className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                    value={paymentTerms}
-                    onChange={(event) =>
-                      setPaymentTerms(event.target.value as CreateSaleDto["paymentTerms"])
-                    }
-                  >
-                    <option value="cash">À vista</option>
-                    <option value="credit">A prazo</option>
-                  </select>
-                </Field>
-
-                {paymentTerms === "cash" ? (
-                  <Field label="Conta de recebimento">
-                    <select
-                      required
-                      className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                      value={cashAccountId}
-                      onChange={(event) => setCashAccountId(event.target.value)}
-                    >
-                      <option value="">Selecione</option>
-                      {cashAccounts.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {account.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                ) : null}
-
-                <Field label="Cliente">
-                  <Input
-                    value={customerName}
-                    placeholder="Nome do cliente"
-                    onChange={(event) => setCustomerName(event.target.value)}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Descrição">
-                <Input
-                  value={description}
-                  placeholder="Histórico da venda"
-                  onChange={(event) => setDescription(event.target.value)}
-                />
-              </Field>
-
-              <Separator />
-
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-medium">Itens</h2>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setItems((current) => [...current, newDraftItem()])}
-                  >
-                    <PlusIcon data-icon="inline-start" />
-                    Adicionar item
-                  </Button>
-                </div>
-
-                {items.map((item, index) => (
-                  <div
-                    key={item.key}
-                    className="grid gap-3 rounded-xl border bg-background p-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
-                  >
-                    <Field label="Item">
-                      <select
-                        required
-                        className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                        value={item.productId}
-                        onChange={(event) => selectProduct(item.key, event.target.value)}
-                      >
-                        <option value="">Selecione</option>
-                        {productList.map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name} · {product.type === "service" ? "serviço" : "produto"}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-
-                    <Field label="Qtd.">
-                      <Input
-                        required
-                        inputMode="decimal"
-                        value={item.quantity}
-                        onChange={(event) =>
-                          updateItem(item.key, { quantity: event.target.value }, setItems)
-                        }
-                      />
-                    </Field>
-
-                    <Field label="Preço">
-                      <Input
-                        required
-                        inputMode="decimal"
-                        value={item.unitPrice}
-                        onChange={(event) =>
-                          updateItem(item.key, { unitPrice: event.target.value }, setItems)
-                        }
-                      />
-                    </Field>
-
-                    <Field label="Total">
-                      <Input readOnly value={lineTotal(item)} />
-                    </Field>
-
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={items.length === 1}
-                        aria-label={`Remover item ${index + 1}`}
-                        onClick={() =>
-                          setItems((current) =>
-                            current.filter((candidate) => candidate.key !== item.key),
-                          )
-                        }
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-3 rounded-xl bg-muted p-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm text-muted-foreground">Total da venda</span>
-                  <strong className="text-2xl">R$ {formatMoney(total)}</strong>
-                </div>
-                <LoadingButton loading={isPending ? { text: "Criando venda..." } : false}>
-                  Criar venda
-                </LoadingButton>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <div className="flex flex-col gap-6">
-          <SalesList
-            sales={saleList}
-            selectedSaleId={selectedSaleId}
-            onSelect={setSelectedSaleId}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Nova venda</DialogTitle>
+            <DialogDescription>
+              Crie vendas à vista ou a prazo. Cadastre produtos/serviços antes se eles ainda não aparecerem na lista.
+            </DialogDescription>
+          </DialogHeader>
+          <SaleForm
+            cashAccountId={cashAccountId}
+            cashAccounts={cashAccounts}
+            customerName={customerName}
+            description={description}
+            isPending={isPending}
+            issueDate={issueDate}
+            items={items}
+            paymentTerms={paymentTerms}
+            productList={productList}
+            total={total}
+            onAddItem={() => setItems((current) => [...current, newDraftItem()])}
+            onCashAccountChange={setCashAccountId}
+            onCustomerNameChange={setCustomerName}
+            onDescriptionChange={setDescription}
+            onIssueDateChange={setIssueDate}
+            onPaymentTermsChange={setPaymentTerms}
+            onProductChange={selectProduct}
+            onSubmit={submit}
+            onUpdateItems={setItems}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={selectedSaleId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSaleId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedSaleId ? `Venda #${selectedSaleId}` : "Detalhe da venda"}</DialogTitle>
+            <DialogDescription>Detalhes da venda e itens lançados.</DialogDescription>
+          </DialogHeader>
           <SaleDetail sale={selectedSale} loading={saleDetail.isLoading} />
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function SalesList({
-  onSelect,
-  sales,
-  selectedSaleId,
+function SaleForm({
+  cashAccountId,
+  cashAccounts,
+  customerName,
+  description,
+  isPending,
+  issueDate,
+  items,
+  onAddItem,
+  onCashAccountChange,
+  onCustomerNameChange,
+  onDescriptionChange,
+  onIssueDateChange,
+  onPaymentTermsChange,
+  onProductChange,
+  onSubmit,
+  onUpdateItems,
+  paymentTerms,
+  productList,
+  total,
 }: {
-  onSelect: (id: number) => void;
-  sales: SaleListItemDto[];
-  selectedSaleId: number | null;
+  cashAccountId: string;
+  cashAccounts: { id: number; name: string }[];
+  customerName: string;
+  description: string;
+  isPending: boolean;
+  issueDate: string;
+  items: SaleDraftItem[];
+  onAddItem: () => void;
+  onCashAccountChange: (value: string) => void;
+  onCustomerNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onIssueDateChange: (value: string) => void;
+  onPaymentTermsChange: (value: CreateSaleDto["paymentTerms"]) => void;
+  onProductChange: (itemKey: string, productId: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onUpdateItems: React.Dispatch<React.SetStateAction<SaleDraftItem[]>>;
+  paymentTerms: CreateSaleDto["paymentTerms"];
+  productList: ProductDto[];
+  total: number;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Vendas recentes</CardTitle>
-        <CardDescription>{sales.length} venda(s) lançadas.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-2">
-          {sales.map((sale) => (
-            <button
-              key={sale.id}
-              type="button"
-              className="rounded-xl border bg-background p-3 text-left transition-colors hover:bg-muted data-[selected=true]:border-primary"
-              data-selected={selectedSaleId === sale.id}
-              onClick={() => onSelect(sale.id)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                  <strong className="font-medium">Venda #{sale.id}</strong>
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(sale.issueDate).toLocaleDateString("pt-BR")} ·{" "}
-                    {sale.paymentTerms === "cash" ? "à vista" : "a prazo"}
-                  </span>
-                </div>
-                <span className="text-sm font-medium">R$ {sale.netAmount}</span>
-              </div>
-            </button>
-          ))}
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Field>
+          <FieldLabel htmlFor="sale-date">Data</FieldLabel>
+          <Input
+            id="sale-date"
+            type="date"
+            value={issueDate}
+            onChange={(event) => onIssueDateChange(event.target.value)}
+          />
+        </Field>
 
-          {sales.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma venda lançada ainda.</p>
-          ) : null}
+        <Field>
+          <FieldLabel>Pagamento</FieldLabel>
+          <Select
+            value={paymentTerms}
+            onValueChange={(value) => onPaymentTermsChange(value as CreateSaleDto["paymentTerms"])}
+          >
+            <SelectTrigger size="sm" className="w-full" aria-label="Condição de pagamento">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cash">À vista</SelectItem>
+              <SelectItem value="credit">A prazo</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+
+        {paymentTerms === "cash" ? (
+          <Field>
+            <FieldLabel>Conta de recebimento</FieldLabel>
+            <Select value={cashAccountId} onValueChange={onCashAccountChange}>
+              <SelectTrigger size="sm" className="w-full" aria-label="Conta de recebimento">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {cashAccounts.map((account) => (
+                  <SelectItem key={account.id} value={String(account.id)}>
+                    {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        ) : null}
+
+        <Field>
+          <FieldLabel htmlFor="sale-customer">Cliente</FieldLabel>
+          <Input
+            id="sale-customer"
+            value={customerName}
+            placeholder="Nome do cliente"
+            onChange={(event) => onCustomerNameChange(event.target.value)}
+          />
+        </Field>
+      </div>
+
+      <Field>
+        <FieldLabel htmlFor="sale-description">Descrição</FieldLabel>
+        <Input
+          id="sale-description"
+          value={description}
+          placeholder="Histórico da venda"
+          onChange={(event) => onDescriptionChange(event.target.value)}
+        />
+      </Field>
+
+      <Separator />
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-medium">Itens</h3>
+          <Button type="button" variant="outline" onClick={onAddItem}>
+            <PlusIcon data-icon="inline-start" />
+            Adicionar item
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+
+        {items.map((item, index) => (
+          <div
+            key={item.key}
+            className="grid gap-3 rounded-xl border bg-background p-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+          >
+            <Field>
+              <FieldLabel>Item</FieldLabel>
+              <Select
+                value={item.productId}
+                onValueChange={(value) => onProductChange(item.key, value)}
+              >
+                <SelectTrigger size="sm" className="w-full" aria-label={`Item ${index + 1}`}>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productList.map((product) => (
+                    <SelectItem key={product.id} value={String(product.id)}>
+                      {product.name} · {product.type === "service" ? "serviço" : "produto"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel>Qtd.</FieldLabel>
+              <QuantityInput
+                aria-label={`Quantidade do item ${index + 1}`}
+                value={item.quantity}
+                onValueChange={(value) => updateItem(item.key, { quantity: value }, onUpdateItems)}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel>Preço</FieldLabel>
+              <MoneyInput
+                aria-label={`Preço unitário do item ${index + 1}`}
+                value={item.unitPrice}
+                onValueChange={(value) => updateItem(item.key, { unitPrice: value }, onUpdateItems)}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel>Total</FieldLabel>
+              <Input readOnly value={`R$ ${lineTotal(item)}`} />
+            </Field>
+
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={items.length === 1}
+                aria-label={`Remover item ${index + 1}`}
+                onClick={() =>
+                  onUpdateItems((current) => current.filter((candidate) => candidate.key !== item.key))
+                }
+              >
+                <Trash2Icon />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl bg-muted p-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-muted-foreground">Total da venda</span>
+          <strong className="text-2xl">R$ {formatMoney(total)}</strong>
+        </div>
+        <LoadingButton loading={isPending ? { text: "Criando venda..." } : false}>
+          Criar venda
+        </LoadingButton>
+      </div>
+    </form>
   );
 }
 
 function SaleDetail({ loading, sale }: { loading: boolean; sale: SaleDetailDto | null }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Detalhe da venda</CardTitle>
-        <CardDescription>Use para conferir os itens após criar uma venda.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading ? <p className="text-sm text-muted-foreground">Carregando detalhe...</p> : null}
-        {!loading && !sale ? (
-          <p className="text-sm text-muted-foreground">Selecione uma venda.</p>
-        ) : null}
-        {sale ? (
-          <div className="flex flex-col gap-4">
-            <div className="rounded-xl bg-muted p-3">
-              <div className="flex items-center justify-between gap-3">
-                <strong>Venda #{sale.id}</strong>
-                <span>R$ {sale.netAmount}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {sale.customerName || "Cliente não informado"}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              {sale.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start justify-between gap-3 rounded-lg border p-3 text-sm"
-                >
-                  <div className="flex flex-col gap-1">
-                    <strong className="font-medium">{item.description}</strong>
-                    <span className="text-muted-foreground">
-                      {item.quantity} x R$ {item.unitPrice}
-                    </span>
-                  </div>
-                  <span>R$ {item.lineAmount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
+  if (loading) return <p className="text-sm text-muted-foreground">Carregando detalhe...</p>;
+  if (!sale) return <p className="text-sm text-muted-foreground">Selecione uma venda.</p>;
 
-function Field({ children, label }: { children: React.ReactNode; label: string }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      {children}
+    <div className="flex flex-col gap-4">
+      <div className="rounded-xl bg-muted p-3">
+        <div className="flex items-center justify-between gap-3">
+          <strong>Venda #{sale.id}</strong>
+          <span>R$ {sale.netAmount}</span>
+        </div>
+        <p className="text-sm text-muted-foreground">{sale.customerName || "Cliente não informado"}</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        {sale.items.map((item) => (
+          <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border p-3 text-sm">
+            <div className="flex flex-col gap-1">
+              <strong className="font-medium">{item.description}</strong>
+              <span className="text-muted-foreground">
+                {item.quantity} x R$ {item.unitPrice}
+              </span>
+            </div>
+            <span>R$ {item.lineAmount}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
