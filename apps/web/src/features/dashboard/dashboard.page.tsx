@@ -8,8 +8,10 @@ import { Skeleton } from "@web/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@web/components/ui/tabs";
 import { useDashboardSummary } from "@web/features/dashboard/dashboard.queries";
 import { useJournalEntries } from "@web/features/journal/journal.queries";
+import { useSales } from "@web/features/sales/sales.queries";
 import { formatMoney } from "@web/lib/format";
 import type { JournalEntryListItemDto, JournalSourceTypeDto } from "@dto/journal.dto";
+import type { SaleListItemDto } from "@dto/sales.dto";
 import { ArrowRightIcon } from "lucide-react";
 import * as React from "react";
 
@@ -48,9 +50,39 @@ const recentEntriesColumns: ColumnDef<JournalEntryListItemDto>[] = [
   },
 ];
 
+const recentSalesColumns: ColumnDef<SaleListItemDto>[] = [
+  {
+    accessorFn: (sale) => `Venda #${sale.id}`,
+    header: "Venda",
+    cell: ({ row }) => <strong className="font-medium">Venda #{row.original.id}</strong>,
+  },
+  {
+    accessorFn: (sale) => new Date(sale.issueDate).toLocaleDateString("pt-BR"),
+    header: "Data",
+  },
+  {
+    accessorFn: (sale) => sale.customerName ?? "Cliente não informado",
+    header: "Cliente",
+  },
+  {
+    accessorFn: (sale) => (sale.paymentTerms === "cash" ? "À vista" : "A prazo"),
+    header: "Pagamento",
+  },
+  {
+    accessorKey: "netAmount",
+    header: "Total",
+    cell: ({ row }) => <span className="font-medium">R$ {row.original.netAmount}</span>,
+  },
+  {
+    accessorFn: (sale) => (sale.status === "posted" ? "Postada" : "Estornada"),
+    header: "Status",
+  },
+];
+
 export default function DashboardPage() {
   const summary = useDashboardSummary();
   const journal = useJournalEntries();
+  const sales = useSales();
 
   const summaryData = summary.data?.isOk() ? summary.data.value : null;
   const journalData = React.useMemo(() => {
@@ -60,6 +92,13 @@ export default function DashboardPage() {
       (a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime(),
     );
   }, [journal.data]);
+  const salesData = React.useMemo(() => {
+    if (!sales.data?.isOk()) return [];
+
+    return [...sales.data.value].sort(
+      (a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime(),
+    );
+  }, [sales.data]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -88,6 +127,7 @@ export default function DashboardPage() {
             </div>
             <TabsList>
               <TabsTrigger value="entries">Lançamentos recentes</TabsTrigger>
+              <TabsTrigger value="sales">Vendas recentes</TabsTrigger>
             </TabsList>
           </CardHeader>
           <CardContent>
@@ -102,6 +142,23 @@ export default function DashboardPage() {
                   <Button variant="outline" size="sm" asChild>
                     <Link to="/dashboard/journal">
                       Ver todos
+                      <ArrowRightIcon data-icon="inline-end" />
+                    </Link>
+                  </Button>
+                }
+              />
+            </TabsContent>
+            <TabsContent value="sales" className="mt-0">
+              <DataTable
+                columns={recentSalesColumns}
+                data={salesData}
+                isLoading={sales.isLoading}
+                emptyMessage="Nenhuma venda encontrada."
+                searchPlaceholder="Buscar por cliente, data ou status..."
+                actions={
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/dashboard/sales">
+                      Ver todas
                       <ArrowRightIcon data-icon="inline-end" />
                     </Link>
                   </Button>
