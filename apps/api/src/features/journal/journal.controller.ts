@@ -1,14 +1,26 @@
-import { JournalService } from "@api/features/journal/journal.service";
+import { CreateJournalEntryError, JournalService } from "@api/features/journal/journal.service";
 import type { AppVariables, AuthVariables } from "@api/hono/appVariables.defs";
 import runHonoHandler from "@api/hono/runHonoHandler";
 import { ensureAuth } from "@api/http/middlewares/ensureAuth";
-import { JournalListQueryDto } from "@dto/journal.dto";
+import { CreateManualJournalEntryDto, JournalListQueryDto } from "@dto/journal.dto";
 import { Effect } from "effect";
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
 
 export const JournalController = new Hono<AppVariables & AuthVariables>()
   .use(ensureAuth)
+  .post("/", validator("json", CreateManualJournalEntryDto), async (c) =>
+    runHonoHandler(
+      c,
+      JournalService.createManualForUser({ ...c.req.valid("json"), userId: c.get("user").id }).pipe(
+        Effect.map((entry) => c.json(entry, 201)),
+        Effect.catchIf(
+          (err) => err instanceof CreateJournalEntryError,
+          ({ code }) => Effect.succeed(c.json({ code }, 400)),
+        ),
+      ),
+    ),
+  )
   .get("/", validator("query", JournalListQueryDto), async (c) =>
     runHonoHandler(
       c,

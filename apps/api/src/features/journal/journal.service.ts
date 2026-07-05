@@ -8,6 +8,7 @@ import AccountsRepo from "@api/features/accounts/accounts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import JournalRepo from "@api/features/journal/journal.repo";
 import type {
+  CreateManualJournalEntryDto,
   JournalEntryDetailDto,
   JournalEntryListItemDto,
   JournalListQueryDto,
@@ -26,11 +27,15 @@ export class JournalService extends Effect.Service<JournalService>()("JournalSer
 
     function create(input: CreateJournalEntryInput) {
       return Effect.gen(function* () {
-        if (input.lines.length === 0) {
+        if (input.lines.length < 2) {
           return yield* Effect.fail(new CreateJournalEntryError({ code: "EMPTY_LINES" }));
         }
 
-        const totals = yield* sumLines(input.lines);
+        const totals = getJournalLineTotals(input.lines);
+
+        if (totals === "INVALID_AMOUNT") {
+          return yield* Effect.fail(new CreateJournalEntryError({ code: "INVALID_AMOUNT" }));
+        }
 
         if (totals.debit === 0n || totals.debit !== totals.credit) {
           return yield* Effect.fail(new CreateJournalEntryError({ code: "UNBALANCED_ENTRY" }));
@@ -46,6 +51,39 @@ export class JournalService extends Effect.Service<JournalService>()("JournalSer
         const { lines, ...entry } = input;
 
         return yield* journalRepo.createEntryWithLines(entry, lines);
+      });
+    }
+
+    function createManualForUser(input: CreateManualJournalEntryDto & { userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId: input.userId });
+
+        if (!company) {
+          return yield* Effect.fail(new CreateJournalEntryError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const entryDate = parseJournalDate(input.entryDate);
+
+        if (!entryDate) {
+          return yield* Effect.fail(new CreateJournalEntryError({ code: "INVALID_DATE" }));
+        }
+
+        const created = yield* create({
+          companyId: company.id,
+          entryDate,
+          memo: input.memo,
+          sourceId: null,
+          sourceType: "manual",
+          status: "posted",
+          lines: input.lines.map((line) => ({
+            accountId: line.accountId,
+            amount: line.amount,
+            description: line.description ?? null,
+            type: line.type,
+          })),
+        });
+
+        return toListItem(created.entry, created.lines);
       });
     }
 
@@ -115,7 +153,7 @@ export class JournalService extends Effect.Service<JournalService>()("JournalSer
       });
     }
 
-    return { create, getForUser, listForUser };
+    return { create, createManualForUser, getForUser, listForUser };
   }),
 
   accessors: true,
@@ -131,8 +169,8 @@ type JournalFilters = {
 
 function parseFilters(query: JournalListQueryDto) {
   return Effect.gen(function* () {
-    const parsedDateFrom = query.dateFrom ? parseDate(query.dateFrom) : undefined;
-    const parsedDateTo = query.dateTo ? parseDate(query.dateTo) : undefined;
+    const parsedDateFrom = query.dateFrom ? parseJournalDate(query.dateFrom) : undefined;
+    const parsedDateTo = query.dateTo ? parseJournalDate(query.dateTo) : undefined;
 
     if ((query.dateFrom && !parsedDateFrom) || (query.dateTo && !parsedDateTo)) {
       return yield* Effect.fail(new ReadJournalEntryError({ code: "INVALID_FILTER" }));
@@ -151,7 +189,25 @@ function parseFilters(query: JournalListQueryDto) {
   });
 }
 
-function parseDate(value: string) {
+export function parseJournalDate(value: string) {
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+
+  if (!dateParts) return null;
+
+  const [, yearValue, monthValue, dayValue] = dateParts;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const calendarDate = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    calendarDate.getUTCFullYear() !== year ||
+    calendarDate.getUTCMonth() !== month - 1 ||
+    calendarDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
   const date = new Date(value);
 
   return Number.isNaN(date.getTime()) ? null : date;
@@ -213,27 +269,23 @@ function toListItem(
   };
 }
 
-function sumLines(lines: Omit<InsertJournalEntryLine, "entryId">[]) {
-  return Effect.gen(function* () {
-    let debit = 0n;
-    let credit = 0n;
+export function getJournalLineTotals(lines: Pick<InsertJournalEntryLine, "amount" | "type">[]) {
+  let debit = 0n;
+  let credit = 0n;
 
-    for (const line of lines) {
-      const cents = amountToCents(line.amount);
+  for (const line of lines) {
+    const cents = amountToCents(line.amount);
 
-      if (cents === null) {
-        return yield* Effect.fail(new CreateJournalEntryError({ code: "INVALID_AMOUNT" }));
-      }
+    if (cents === null) return "INVALID_AMOUNT" as const;
 
-      if (line.type === "debit") {
-        debit += cents;
-      } else {
-        credit += cents;
-      }
+    if (line.type === "debit") {
+      debit += cents;
+    } else {
+      credit += cents;
     }
+  }
 
-    return { credit, debit };
-  });
+  return { credit, debit };
 }
 
 function amountToCents(amount: string) {
@@ -257,5 +309,11 @@ export class ReadJournalEntryError extends Data.TaggedError("ReadJournalEntryErr
 }> {}
 
 export class CreateJournalEntryError extends Data.TaggedError("CreateJournalEntryError")<{
-  readonly code: "EMPTY_LINES" | "INVALID_ACCOUNT" | "INVALID_AMOUNT" | "UNBALANCED_ENTRY";
+  readonly code:
+    | "COMPANY_NOT_FOUND"
+    | "EMPTY_LINES"
+    | "INVALID_ACCOUNT"
+    | "INVALID_AMOUNT"
+    | "INVALID_DATE"
+    | "UNBALANCED_ENTRY";
 }> {}

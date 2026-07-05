@@ -1,3 +1,4 @@
+import { zMoney } from "@dto/common";
 import * as v from "valibot";
 
 export const JournalSourceTypeDto = v.picklist([
@@ -10,6 +11,19 @@ export const JournalSourceTypeDto = v.picklist([
 
 export const JournalEntryStatusDto = v.picklist(["posted", "void"]);
 export const JournalEntryLineTypeDto = v.picklist(["debit", "credit"]);
+
+export const CreateManualJournalEntryLineDto = v.object({
+  accountId: v.number(),
+  amount: zMoney,
+  description: v.nullable(v.optional(v.string())),
+  type: JournalEntryLineTypeDto,
+});
+
+export const CreateManualJournalEntryDto = v.object({
+  entryDate: v.string(),
+  memo: v.pipe(v.string(), v.nonEmpty()),
+  lines: v.pipe(v.array(CreateManualJournalEntryLineDto), v.minLength(2)),
+});
 
 export const JournalListQueryDto = v.object({
   accountId: v.optional(v.pipe(v.string(), v.regex(/^\d+$/))),
@@ -49,6 +63,8 @@ export const JournalEntryDetailDto = v.object({
 export type JournalSourceTypeDto = v.InferInput<typeof JournalSourceTypeDto>;
 export type JournalEntryStatusDto = v.InferInput<typeof JournalEntryStatusDto>;
 export type JournalEntryLineTypeDto = v.InferInput<typeof JournalEntryLineTypeDto>;
+export type CreateManualJournalEntryLineDto = v.InferInput<typeof CreateManualJournalEntryLineDto>;
+export type CreateManualJournalEntryDto = v.InferInput<typeof CreateManualJournalEntryDto>;
 export type JournalListQueryDto = v.InferInput<typeof JournalListQueryDto>;
 export type JournalEntryLineDto = v.InferInput<typeof JournalEntryLineDto>;
 export type JournalEntryListItemDto = v.InferInput<typeof JournalEntryListItemDto>;

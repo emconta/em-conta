@@ -14,7 +14,7 @@ Use this as the durable PR plan for building the remaining classroom/demo MVP. K
 
 ### 1. Manual Journal Entries
 
-Status: pending
+Status: completed
 
 Goal: let the user create a simple debit/credit journal entry manually and reject unbalanced entries.
 

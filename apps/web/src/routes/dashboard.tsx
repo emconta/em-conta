@@ -3,7 +3,13 @@ import { Button } from "@web/components/ui/button";
 import { getOnboardingStatusOptions } from "@web/features/onboarding/onboarding.queries";
 import { authClient } from "@web/lib/auth";
 import { cn } from "@web/lib/utils";
-import { BookOpenIcon, BoxesIcon, LayoutDashboardIcon, ReceiptTextIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  BoxesIcon,
+  LayoutDashboardIcon,
+  NotebookPenIcon,
+  ReceiptTextIcon,
+} from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   async beforeLoad(ctx) {
@@ -26,6 +32,7 @@ function RouteComponent() {
 
   const links = [
     { to: "/dashboard", label: "Resumo", icon: LayoutDashboardIcon },
+    { to: "/dashboard/journal", label: "Lançamentos", icon: NotebookPenIcon },
     { to: "/dashboard/products", label: "Produtos", icon: BoxesIcon },
     { to: "/dashboard/sales", label: "Vendas", icon: ReceiptTextIcon },
     { to: "/api/v1/docs", label: "API docs", icon: BookOpenIcon, external: true },
