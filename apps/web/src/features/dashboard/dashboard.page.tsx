@@ -123,7 +123,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-col gap-4 pb-4">
             <div className="flex flex-col gap-1">
               <CardTitle>Movimentações recentes</CardTitle>
-              <CardDescription>Últimos lançamentos contábeis do período.</CardDescription>
+              <CardDescription>Últimas movimentações do período.</CardDescription>
             </div>
             <TabsList>
               <TabsTrigger value="entries">Lançamentos recentes</TabsTrigger>
