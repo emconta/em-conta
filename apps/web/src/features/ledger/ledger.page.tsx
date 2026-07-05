@@ -1,6 +1,5 @@
 import type { AccountDto } from "@dto/accounts.dto";
 import type { AccountLedgerRowDto } from "@dto/ledger.dto";
-import { Button } from "@web/components/ui/button";
 import {
   Combobox,
   ComboboxCollection,
@@ -16,7 +15,6 @@ import { type ColumnDef, DataTable } from "@web/components/ui/data-table";
 import { Field, FieldLabel } from "@web/components/ui/field";
 import { useAccounts } from "@web/features/accounts/accounts.queries";
 import { useAccountLedger } from "@web/features/ledger/ledger.queries";
-import { BookOpenIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 type AccountGroup = {
@@ -120,20 +118,12 @@ export default function LedgerPage() {
 
         {selectedAccount && ledgerData ? (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1 rounded-xl bg-muted p-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <strong className="font-medium">{ledgerData.accountName}</strong>
-                <p className="text-sm text-muted-foreground">
-                  Natureza {ledgerData.accountNature === "debit" ? "devedora" : "credora"} · Saldo
-                  inicial {formatMoney(ledgerData.openingBalance)}
-                </p>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <a href="/api/v1/docs" target="_blank" rel="noreferrer">
-                  <BookOpenIcon data-icon="inline-start" />
-                  API docs
-                </a>
-              </Button>
+            <div className="rounded-xl bg-muted p-3">
+              <strong className="font-medium">{ledgerData.accountName}</strong>
+              <p className="text-sm text-muted-foreground">
+                Natureza {ledgerData.accountNature === "debit" ? "devedora" : "credora"} · Saldo
+                inicial {formatMoney(ledgerData.openingBalance)}
+              </p>
             </div>
 
             <DataTable
