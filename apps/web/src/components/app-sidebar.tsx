@@ -18,7 +18,6 @@ import {
   LayoutDashboardIcon,
   NotebookPenIcon,
   PiggyBankIcon,
-  PlusIcon,
   ReceiptTextIcon,
   ScaleIcon,
   SheetIcon,
@@ -53,21 +52,14 @@ export function AppSidebar({ user }: { user: User }) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link to="/dashboard" className="flex items-center">
-                <PiggyBankIcon className="!size-6 shrink-0" />
+                <PiggyBankIcon className="!size-7 shrink-0 text-primary" />
+                <span className="truncate font-semibold text-primary text-lg">emConta</span>
 
                 {/* <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">emConta</span>
                   <span className="truncate text-xs">Contabilidade MEI</span>
                 </div> */}
               </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="sm">
-              <PlusIcon />
-              <span>Criar rápido</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
