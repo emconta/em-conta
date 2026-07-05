@@ -1,6 +1,7 @@
 ---
 description: Reviews emConta diffs and PRs for bugs, accounting regressions, missing validations, missing tests, and scope creep.
 mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: ask

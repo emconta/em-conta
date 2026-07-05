@@ -1,6 +1,7 @@
 ---
 description: Advises the main builder on accounting rules for emConta, a quick MVP for Brazilian solo entrepreneurs.
 mode: subagent
+model: opencode/mimo-v2.5-free
 permission:
   edit: deny
   bash: deny
