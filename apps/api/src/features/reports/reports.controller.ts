@@ -2,7 +2,7 @@ import { ReportsService, ReportsServiceError } from "@api/features/reports/repor
 import type { AppVariables, AuthVariables } from "@api/hono/appVariables.defs";
 import runHonoHandler from "@api/hono/runHonoHandler";
 import { ensureAuth } from "@api/http/middlewares/ensureAuth";
-import { BalanceSheetQueryDto, DreQueryDto } from "@dto/reports.dto";
+import { BalanceSheetQueryDto, CurrentLiquidityQueryDto, DreQueryDto } from "@dto/reports.dto";
 import { Effect } from "effect";
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
@@ -28,6 +28,21 @@ export const ReportsController = new Hono<AppVariables & AuthVariables>()
     runHonoHandler(
       c,
       ReportsService.getBalanceSheetForUser({
+        ...c.req.valid("query"),
+        userId: c.get("user").id,
+      }).pipe(
+        Effect.map((report) => c.json(report)),
+        Effect.catchIf(
+          (err) => err instanceof ReportsServiceError,
+          ({ code }) => Effect.succeed(c.json({ code }, 400)),
+        ),
+      ),
+    ),
+  )
+  .get("/current-liquidity", validator("query", CurrentLiquidityQueryDto), async (c) =>
+    runHonoHandler(
+      c,
+      ReportsService.getCurrentLiquidityForUser({
         ...c.req.valid("query"),
         userId: c.get("user").id,
       }).pipe(

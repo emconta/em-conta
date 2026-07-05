@@ -5,6 +5,7 @@ import ReportsRepo from "@api/features/reports/reports.repo";
 import type {
   BalanceSheetGroupDto,
   BalanceSheetReportDto,
+  CurrentLiquidityReportDto,
   DreBreakdownItemDto,
   DreReportDto,
 } from "@dto/reports.dto";
@@ -88,7 +89,31 @@ export class ReportsService extends Effect.Service<ReportsService>()("ReportsSer
       });
     }
 
-    return { getBalanceSheetForUser, getDreForUser };
+    function getCurrentLiquidityForUser({ dateTo, userId }: { dateTo: string; userId: string }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new ReportsServiceError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const parsedDateTo = parseDateAtEndOfDay(dateTo);
+
+        if (!parsedDateTo) {
+          return yield* Effect.fail(new ReportsServiceError({ code: "INVALID_PERIOD" }));
+        }
+
+        const rows = yield* reportsRepo.listPostedLinesUpToDate({
+          companyId: company.id,
+          categories: ["assets", "liabilities"],
+          dateTo: parsedDateTo,
+        });
+
+        return buildCurrentLiquidityReport({ dateTo: parsedDateTo, rows });
+      });
+    }
+
+    return { getBalanceSheetForUser, getCurrentLiquidityForUser, getDreForUser };
   }),
 
   accessors: true,
@@ -220,6 +245,61 @@ export function buildDreReport(
     revenueBreakdown,
     expenseBreakdown,
   };
+}
+
+export function buildCurrentLiquidityReport({
+  dateTo,
+  rows,
+}: {
+  dateTo: Date;
+  rows: ReportLineWithAccount[];
+}): CurrentLiquidityReportDto {
+  let currentAssets = 0n;
+  let currentLiabilities = 0n;
+
+  for (const { line, account } of rows) {
+    const cents = moneyToCents(line.amount);
+    const signedDelta =
+      account.nature === "debit"
+        ? line.type === "debit"
+          ? 1n
+          : -1n
+        : line.type === "credit"
+          ? 1n
+          : -1n;
+    const delta = signedDelta * cents;
+
+    if (account.category === "assets") {
+      currentAssets += delta;
+    } else if (account.category === "liabilities") {
+      currentLiabilities += delta;
+    }
+  }
+
+  const hasCurrentLiabilities = currentLiabilities > 0n;
+
+  const ratio = hasCurrentLiabilities ? formatRatio(currentAssets, currentLiabilities) : null;
+
+  const display = ratio ?? "N/A";
+
+  return {
+    dateTo: dateTo.toISOString().slice(0, 10),
+    currentAssets: moneyFromCents(currentAssets),
+    currentLiabilities: moneyFromCents(currentLiabilities),
+    ratio,
+    hasCurrentLiabilities,
+    display,
+  };
+}
+
+function formatRatio(numerator: bigint, denominator: bigint): string {
+  const scaled = (numerator * 100n) / denominator;
+  const negative = scaled < 0n;
+  const absoluteScaled = negative ? -scaled : scaled;
+  const units = absoluteScaled / 100n;
+  const decimals = (absoluteScaled % 100n).toString().padStart(2, "0");
+
+  return negative ? `-${units}.${decimals}` : `${units}.${decimals}`;
 }
 
 export function buildBalanceSheetReport(

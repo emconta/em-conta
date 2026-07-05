@@ -1,5 +1,6 @@
 import {
   buildBalanceSheetReport,
+  buildCurrentLiquidityReport,
   buildDreReport,
   parseDrePeriod,
 } from "@api/features/reports/reports.service";
@@ -367,5 +368,169 @@ describe("Balance Sheet report builder", () => {
     expect(
       report.equity.items.find((item) => item.accountName === "Resultado do período")?.amount,
     ).toBe("-3000.00");
+  });
+});
+
+describe("Current Liquidity report builder", () => {
+  const dateTo = new Date("2026-07-31");
+
+  it("returns N/A when there are no movements", () => {
+    const report = buildCurrentLiquidityReport({ dateTo, rows: [] });
+
+    expect(report.currentAssets).toBe("0.00");
+    expect(report.currentLiabilities).toBe("0.00");
+    expect(report.ratio).toBeNull();
+    expect(report.hasCurrentLiabilities).toBe(false);
+    expect(report.display).toBe("N/A");
+  });
+
+  it("calculates demo liquidity after sale, CMV and expense", () => {
+    const rows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "10000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "4000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { amount: "4000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { amount: "4000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "1000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities" },
+        { amount: "2000.00", type: "credit" },
+      ),
+    ];
+
+    const report = buildCurrentLiquidityReport({ dateTo, rows });
+
+    expect(report.currentAssets).toBe("5000.00");
+    expect(report.currentLiabilities).toBe("2000.00");
+    expect(report.ratio).toBe("2.50");
+    expect(report.hasCurrentLiabilities).toBe(true);
+    expect(report.display).toBe("2.50");
+  });
+
+  it("returns N/A when current liabilities are zero", () => {
+    const rows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "5000.00", type: "debit" },
+      ),
+    ];
+
+    const report = buildCurrentLiquidityReport({ dateTo, rows });
+
+    expect(report.currentAssets).toBe("5000.00");
+    expect(report.currentLiabilities).toBe("0.00");
+    expect(report.ratio).toBeNull();
+    expect(report.hasCurrentLiabilities).toBe(false);
+    expect(report.display).toBe("N/A");
+  });
+
+  it("ignores equity, revenue and expense accounts", () => {
+    const rows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "5000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 60, name: "Capital social", category: "equity" },
+        { amount: "5000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 20, name: "Receita de vendas", category: "revenue" },
+        { amount: "1000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 50, name: "Despesas operacionais", category: "expenses" },
+        { amount: "1000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities" },
+        { amount: "2000.00", type: "credit" },
+      ),
+    ];
+
+    const report = buildCurrentLiquidityReport({ dateTo, rows });
+
+    expect(report.currentAssets).toBe("5000.00");
+    expect(report.currentLiabilities).toBe("2000.00");
+    expect(report.ratio).toBe("2.50");
+  });
+
+  it("respects account nature when calculating balances", () => {
+    const rows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash", nature: "debit" },
+        { amount: "1000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities", nature: "credit" },
+        { amount: "500.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash", nature: "debit" },
+        { amount: "300.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities", nature: "credit" },
+        { amount: "200.00", type: "debit" },
+      ),
+    ];
+
+    const report = buildCurrentLiquidityReport({ dateTo, rows });
+
+    expect(report.currentAssets).toBe("700.00");
+    expect(report.currentLiabilities).toBe("300.00");
+    expect(report.ratio).toBe("2.33");
+  });
+
+  it("returns N/A when current liabilities are negative", () => {
+    const rows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "1000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities" },
+        { amount: "500.00", type: "debit" },
+      ),
+    ];
+
+    const report = buildCurrentLiquidityReport({ dateTo, rows });
+
+    expect(report.currentAssets).toBe("1000.00");
+    expect(report.currentLiabilities).toBe("-500.00");
+    expect(report.ratio).toBeNull();
+    expect(report.hasCurrentLiabilities).toBe(false);
+    expect(report.display).toBe("N/A");
+  });
+
+  it("truncates ratio to two decimal places", () => {
+    const rows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { amount: "100.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities" },
+        { amount: "300.00", type: "credit" },
+      ),
+    ];
+
+    const report = buildCurrentLiquidityReport({ dateTo, rows });
+
+    expect(report.ratio).toBe("0.33");
   });
 });

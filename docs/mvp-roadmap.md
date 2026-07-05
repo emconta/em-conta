@@ -94,7 +94,7 @@ Definition of done:
 
 ### 6. Current Liquidity
 
-Status: pending
+Status: completed
 
 Goal: calculate current liquidity ratio.
 

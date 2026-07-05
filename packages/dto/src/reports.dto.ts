@@ -59,6 +59,19 @@ export const BalanceSheetQueryDto = v.object({
   dateTo: dateSchema,
 });
 
+export const CurrentLiquidityQueryDto = v.object({
+  dateTo: dateSchema,
+});
+
+export const CurrentLiquidityReportDto = v.object({
+  dateTo: v.string(),
+  currentAssets: v.string(),
+  currentLiabilities: v.string(),
+  ratio: v.nullable(v.string()),
+  hasCurrentLiabilities: v.boolean(),
+  display: v.string(),
+});
+
 export type DrePeriodDto = v.InferInput<typeof DrePeriodDto>;
 export type DreBreakdownItemDto = v.InferInput<typeof DreBreakdownItemDto>;
 export type DreReportDto = v.InferInput<typeof DreReportDto>;
@@ -67,3 +80,5 @@ export type BalanceSheetAccountDto = v.InferInput<typeof BalanceSheetAccountDto>
 export type BalanceSheetGroupDto = v.InferInput<typeof BalanceSheetGroupDto>;
 export type BalanceSheetReportDto = v.InferInput<typeof BalanceSheetReportDto>;
 export type BalanceSheetQueryDto = v.InferInput<typeof BalanceSheetQueryDto>;
+export type CurrentLiquidityReportDto = v.InferInput<typeof CurrentLiquidityReportDto>;
+export type CurrentLiquidityQueryDto = v.InferInput<typeof CurrentLiquidityQueryDto>;

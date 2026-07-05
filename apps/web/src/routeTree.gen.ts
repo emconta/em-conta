@@ -19,6 +19,7 @@ import { Route as DashboardProductsRouteImport } from './routes/dashboard/produc
 import { Route as DashboardLedgerRouteImport } from './routes/dashboard/ledger'
 import { Route as DashboardJournalRouteImport } from './routes/dashboard/journal'
 import { Route as DashboardReportsDreRouteImport } from './routes/dashboard/reports/dre'
+import { Route as DashboardReportsCurrentLiquidityRouteImport } from './routes/dashboard/reports/current-liquidity'
 import { Route as DashboardReportsBalanceSheetRouteImport } from './routes/dashboard/reports/balance-sheet'
 
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -71,6 +72,12 @@ const DashboardReportsDreRoute = DashboardReportsDreRouteImport.update({
   path: '/reports/dre',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardReportsCurrentLiquidityRoute =
+  DashboardReportsCurrentLiquidityRouteImport.update({
+    id: '/reports/current-liquidity',
+    path: '/reports/current-liquidity',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardReportsBalanceSheetRoute =
   DashboardReportsBalanceSheetRouteImport.update({
     id: '/reports/balance-sheet',
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/sales': typeof DashboardSalesRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/reports/balance-sheet': typeof DashboardReportsBalanceSheetRoute
+  '/dashboard/reports/current-liquidity': typeof DashboardReportsCurrentLiquidityRoute
   '/dashboard/reports/dre': typeof DashboardReportsDreRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/dashboard/sales': typeof DashboardSalesRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/reports/balance-sheet': typeof DashboardReportsBalanceSheetRoute
+  '/dashboard/reports/current-liquidity': typeof DashboardReportsCurrentLiquidityRoute
   '/dashboard/reports/dre': typeof DashboardReportsDreRoute
 }
 export interface FileRoutesById {
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/dashboard/sales': typeof DashboardSalesRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/reports/balance-sheet': typeof DashboardReportsBalanceSheetRoute
+  '/dashboard/reports/current-liquidity': typeof DashboardReportsCurrentLiquidityRoute
   '/dashboard/reports/dre': typeof DashboardReportsDreRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/dashboard/'
     | '/dashboard/reports/balance-sheet'
+    | '/dashboard/reports/current-liquidity'
     | '/dashboard/reports/dre'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/dashboard'
     | '/dashboard/reports/balance-sheet'
+    | '/dashboard/reports/current-liquidity'
     | '/dashboard/reports/dre'
   id:
     | '__root__'
@@ -155,6 +167,7 @@ export interface FileRouteTypes {
     | '/dashboard/sales'
     | '/dashboard/'
     | '/dashboard/reports/balance-sheet'
+    | '/dashboard/reports/current-liquidity'
     | '/dashboard/reports/dre'
   fileRoutesById: FileRoutesById
 }
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardReportsDreRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/reports/current-liquidity': {
+      id: '/dashboard/reports/current-liquidity'
+      path: '/reports/current-liquidity'
+      fullPath: '/dashboard/reports/current-liquidity'
+      preLoaderRoute: typeof DashboardReportsCurrentLiquidityRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/reports/balance-sheet': {
       id: '/dashboard/reports/balance-sheet'
       path: '/reports/balance-sheet'
@@ -254,6 +274,7 @@ interface DashboardRouteChildren {
   DashboardSalesRoute: typeof DashboardSalesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardReportsBalanceSheetRoute: typeof DashboardReportsBalanceSheetRoute
+  DashboardReportsCurrentLiquidityRoute: typeof DashboardReportsCurrentLiquidityRoute
   DashboardReportsDreRoute: typeof DashboardReportsDreRoute
 }
 
@@ -264,6 +285,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSalesRoute: DashboardSalesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardReportsBalanceSheetRoute: DashboardReportsBalanceSheetRoute,
+  DashboardReportsCurrentLiquidityRoute: DashboardReportsCurrentLiquidityRoute,
   DashboardReportsDreRoute: DashboardReportsDreRoute,
 }
 
