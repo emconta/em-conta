@@ -1,0 +1,365 @@
+import type { AccountCategory } from "@api/db/schema";
+import CompaniesRepo from "@api/features/companies/companies.repo";
+import type { ReportLineWithAccount } from "@api/features/reports/reports.repo";
+import ReportsRepo from "@api/features/reports/reports.repo";
+import type {
+  BalanceSheetGroupDto,
+  BalanceSheetReportDto,
+  DreBreakdownItemDto,
+  DreReportDto,
+} from "@dto/reports.dto";
+import { Data, Effect } from "effect";
+
+export class ReportsService extends Effect.Service<ReportsService>()("ReportsService", {
+  effect: Effect.gen(function* () {
+    const companiesRepo = yield* CompaniesRepo;
+    const reportsRepo = yield* ReportsRepo;
+
+    function getDreForUser({
+      dateFrom,
+      dateTo,
+      userId,
+    }: {
+      dateFrom: string;
+      dateTo: string;
+      userId: string;
+    }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new ReportsServiceError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const period = parseDrePeriod(dateFrom, dateTo);
+
+        if (!period) {
+          return yield* Effect.fail(new ReportsServiceError({ code: "INVALID_PERIOD" }));
+        }
+
+        const rows = yield* reportsRepo.listPostedLinesByCategories({
+          companyId: company.id,
+          categories: ["revenue", "expenses"],
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
+        });
+
+        return buildDreReport(period, rows);
+      });
+    }
+
+    function getBalanceSheetForUser({
+      dateFrom,
+      dateTo,
+      userId,
+    }: {
+      dateFrom: string;
+      dateTo: string;
+      userId: string;
+    }) {
+      return Effect.gen(function* () {
+        const company = yield* companiesRepo.getFromUser({ userId });
+
+        if (!company) {
+          return yield* Effect.fail(new ReportsServiceError({ code: "COMPANY_NOT_FOUND" }));
+        }
+
+        const period = parseDrePeriod(dateFrom, dateTo);
+
+        if (!period) {
+          return yield* Effect.fail(new ReportsServiceError({ code: "INVALID_PERIOD" }));
+        }
+
+        const [balanceSheetRows, dreRows] = yield* Effect.all([
+          reportsRepo.listPostedLinesUpToDate({
+            companyId: company.id,
+            categories: ["assets", "liabilities", "equity"],
+            dateTo: period.dateTo,
+          }),
+          reportsRepo.listPostedLinesByCategories({
+            companyId: company.id,
+            categories: ["revenue", "expenses"],
+            dateFrom: period.dateFrom,
+            dateTo: period.dateTo,
+          }),
+        ]);
+
+        return buildBalanceSheetReport(period, balanceSheetRows, dreRows);
+      });
+    }
+
+    return { getBalanceSheetForUser, getDreForUser };
+  }),
+
+  accessors: true,
+}) {}
+
+export class ReportsServiceError extends Data.TaggedError("ReportsServiceError")<{
+  readonly code: "COMPANY_NOT_FOUND" | "INVALID_PERIOD";
+}> {}
+
+export function parseDrePeriod(dateFrom: string, dateTo: string) {
+  const from = parseDateAtStartOfDay(dateFrom);
+  const to = parseDateAtEndOfDay(dateTo);
+
+  if (!from || !to || from > to) return null;
+
+  return { dateFrom: from, dateTo: to };
+}
+
+function parseDateAtStartOfDay(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0));
+
+  if (
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() !== Number(month) - 1 ||
+    date.getUTCDate() !== Number(day)
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function parseDateAtEndOfDay(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 23, 59, 59, 999));
+
+  if (
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() !== Number(month) - 1 ||
+    date.getUTCDate() !== Number(day)
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+export function buildDreReport(
+  period: { dateFrom: Date; dateTo: Date },
+  rows: ReportLineWithAccount[],
+): DreReportDto {
+  const accountTotals = new Map<
+    number,
+    { accountName: string; accountKey: string | null; category: AccountCategory; netAmount: bigint }
+  >();
+
+  for (const { line, account } of rows) {
+    if (account.category !== "revenue" && account.category !== "expenses") continue;
+
+    const cents = moneyToCents(line.amount);
+    const signedDelta =
+      account.category === "revenue"
+        ? line.type === "credit"
+          ? 1n
+          : -1n
+        : line.type === "debit"
+          ? 1n
+          : -1n;
+    const delta = signedDelta * cents;
+
+    const existing = accountTotals.get(account.id);
+
+    if (existing) {
+      existing.netAmount += delta;
+    } else {
+      accountTotals.set(account.id, {
+        accountName: account.name,
+        accountKey: account.key,
+        category: account.category,
+        netAmount: delta,
+      });
+    }
+  }
+
+  let totalRevenue = 0n;
+  let totalExpenses = 0n;
+  const revenueBreakdown: DreBreakdownItemDto[] = [];
+  const expenseBreakdown: DreBreakdownItemDto[] = [];
+
+  for (const [accountId, { accountKey, accountName, category, netAmount }] of accountTotals) {
+    const item = {
+      accountId,
+      accountName,
+      accountKey,
+      amount: moneyFromCents(netAmount),
+    };
+
+    if (category === "revenue") {
+      totalRevenue += netAmount;
+      revenueBreakdown.push(item);
+    } else {
+      totalExpenses += netAmount;
+      expenseBreakdown.push(item);
+    }
+  }
+
+  revenueBreakdown.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+  expenseBreakdown.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+
+  const netResult = totalRevenue - totalExpenses;
+
+  return {
+    period: {
+      dateFrom: period.dateFrom.toISOString().slice(0, 10),
+      dateTo: period.dateTo.toISOString().slice(0, 10),
+    },
+    totalRevenue: moneyFromCents(totalRevenue),
+    totalExpenses: moneyFromCents(totalExpenses),
+    netResult: moneyFromCents(netResult),
+    revenueBreakdown,
+    expenseBreakdown,
+  };
+}
+
+export function buildBalanceSheetReport(
+  period: { dateFrom: Date; dateTo: Date },
+  balanceSheetRows: ReportLineWithAccount[],
+  dreRows: ReportLineWithAccount[],
+): BalanceSheetReportDto {
+  const accountBalances = new Map<
+    number,
+    { accountName: string; accountKey: string | null; category: AccountCategory; balance: bigint }
+  >();
+
+  for (const { line, account } of balanceSheetRows) {
+    if (
+      account.category !== "assets" &&
+      account.category !== "liabilities" &&
+      account.category !== "equity"
+    )
+      continue;
+
+    const cents = moneyToCents(line.amount);
+    const signedDelta =
+      account.nature === "debit"
+        ? line.type === "debit"
+          ? 1n
+          : -1n
+        : line.type === "credit"
+          ? 1n
+          : -1n;
+    const delta = signedDelta * cents;
+
+    const existing = accountBalances.get(account.id);
+
+    if (existing) {
+      existing.balance += delta;
+    } else {
+      accountBalances.set(account.id, {
+        accountName: account.name,
+        accountKey: account.key,
+        category: account.category,
+        balance: delta,
+      });
+    }
+  }
+
+  const assets = buildGroup("Ativo", accountBalances, "assets");
+  const liabilities = buildGroup("Passivo", accountBalances, "liabilities");
+  const equityAccounts = buildGroup("Patrimônio líquido", accountBalances, "equity");
+
+  const dre = buildDreReport(period, dreRows);
+  const netResult = signedMoneyToCents(dre.netResult);
+
+  const resultadoItem = {
+    accountId: null,
+    accountName: "Resultado do período",
+    accountKey: null,
+    amount: dre.netResult,
+  };
+
+  const equityItems = [...equityAccounts.items, resultadoItem].filter(
+    (item) => signedMoneyToCents(item.amount) !== 0n,
+  );
+  const equityTotal = equityAccounts.totalCents + netResult;
+
+  const equity: BalanceSheetGroupDto = {
+    label: "Patrimônio líquido",
+    items: equityItems,
+    total: moneyFromCents(equityTotal),
+  };
+
+  const totalLiabilitiesAndEquity = liabilities.totalCents + equityTotal;
+  const isBalanced = assets.totalCents === totalLiabilitiesAndEquity;
+
+  return {
+    dateTo: period.dateTo.toISOString().slice(0, 10),
+    period: {
+      dateFrom: period.dateFrom.toISOString().slice(0, 10),
+      dateTo: period.dateTo.toISOString().slice(0, 10),
+    },
+    assets: { items: assets.items, label: assets.label, total: assets.total },
+    liabilities: { items: liabilities.items, label: liabilities.label, total: liabilities.total },
+    equity,
+    totalLiabilitiesAndEquity: moneyFromCents(totalLiabilitiesAndEquity),
+    isBalanced,
+  };
+}
+
+function buildGroup(
+  label: string,
+  accountBalances: Map<
+    number,
+    { accountName: string; accountKey: string | null; category: AccountCategory; balance: bigint }
+  >,
+  category: AccountCategory,
+) {
+  let totalCents = 0n;
+  const items = [];
+
+  for (const [
+    accountId,
+    { accountKey, accountName, category: accountCategory, balance },
+  ] of accountBalances) {
+    if (accountCategory !== category || balance === 0n) continue;
+
+    totalCents += balance;
+    items.push({
+      accountId,
+      accountName,
+      accountKey,
+      amount: moneyFromCents(balance),
+    });
+  }
+
+  items.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+
+  return { items, label, total: moneyFromCents(totalCents), totalCents };
+}
+
+export function moneyToCents(amount: string) {
+  if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
+    throw new Error(`Invalid report amount: ${amount}`);
+  }
+
+  const [units = "0", cents = ""] = amount.split(".");
+
+  return BigInt(units) * 100n + BigInt(cents.padEnd(2, "0"));
+}
+
+export function moneyFromCents(cents: bigint) {
+  const negative = cents < 0n;
+  const absoluteCents = negative ? -cents : cents;
+  const units = absoluteCents / 100n;
+  const decimals = (absoluteCents % 100n).toString().padStart(2, "0");
+
+  return negative ? `-${units}.${decimals}` : `${units}.${decimals}`;
+}
+
+function signedMoneyToCents(amount: string) {
+  const negative = amount.startsWith("-");
+  const absoluteAmount = negative ? amount.slice(1) : amount;
+
+  return negative ? -moneyToCents(absoluteAmount) : moneyToCents(absoluteAmount);
+}

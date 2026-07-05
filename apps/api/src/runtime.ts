@@ -8,11 +8,15 @@ import { InventoryService } from "@api/features/inventory/inventory.service";
 import StockMovementsRepo from "@api/features/inventory/stockMovements.repo";
 import JournalRepo from "@api/features/journal/journal.repo";
 import { JournalService } from "@api/features/journal/journal.service";
+import LedgerRepo from "@api/features/ledger/ledger.repo";
+import { LedgerService } from "@api/features/ledger/ledger.service";
 import OnboardingService from "@api/features/onboarding/onboarding.service";
 import ProductsRepo from "@api/features/products/products.repo";
 import { ProductsService } from "@api/features/products/products.service";
 import ReceiptsRepo from "@api/features/receipts/receipts.repo";
 import { ReceiptsService } from "@api/features/receipts/receipts.service";
+import ReportsRepo from "@api/features/reports/reports.repo";
+import { ReportsService } from "@api/features/reports/reports.service";
 import SalesRepo from "@api/features/sales/sales.repo";
 import { SalesService } from "@api/features/sales/sales.service";
 import { Layer, Logger, ManagedRuntime } from "effect";
@@ -28,8 +32,10 @@ export function makeRuntime(env: Cloudflare.Env) {
       AccountsRepo.Default,
       AccountsChartsRepo.Default,
       JournalRepo.Default,
+      LedgerRepo.Default,
       ProductsRepo.Default,
       ReceiptsRepo.Default,
+      ReportsRepo.Default,
       SalesRepo.Default,
       StockMovementsRepo.Default,
     ),
@@ -42,8 +48,10 @@ export function makeRuntime(env: Cloudflare.Env) {
       AccountsService.Default,
       Layer.provide(ProductsService.Default, InventoryService.Default),
       JournalService.Default,
+      LedgerService.Default,
       InventoryService.Default,
       ReceiptsService.Default,
+      ReportsService.Default,
       Layer.provide(SalesService.Default, InventoryService.Default),
     ),
     Layer.mergeAll(repoLayer, noDepsLayer, baseLayer),

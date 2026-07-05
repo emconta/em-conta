@@ -55,7 +55,7 @@ Definition of done:
 
 ### 3. Account Ledger / Razao
 
-Status: pending
+Status: completed
 
 Goal: show movements and running balance for one account.
 
@@ -68,7 +68,7 @@ Definition of done:
 
 ### 4. DRE
 
-Status: pending
+Status: completed
 
 Goal: calculate and display Demonstração de Resultado for a period.
 
@@ -81,7 +81,7 @@ Definition of done:
 
 ### 5. Balance Sheet
 
-Status: pending
+Status: completed
 
 Goal: calculate and display Balance Sheet with Assets = Liabilities + Equity.
 

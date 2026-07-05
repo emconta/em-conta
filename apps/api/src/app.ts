@@ -2,9 +2,11 @@ import { createAuth } from "@api/auth";
 import { AccountsController } from "@api/features/accounts/accounts.controller";
 import { InternalController } from "@api/features/internal/internal.controller";
 import { JournalController } from "@api/features/journal/journal.controller";
+import { LedgerController } from "@api/features/ledger/ledger.controller";
 import { OnboardingController } from "@api/features/onboarding/onboarding.controller";
 import { ProductsController } from "@api/features/products/products.controller";
 import { ReceiptsController } from "@api/features/receipts/receipts.controller";
+import { ReportsController } from "@api/features/reports/reports.controller";
 import { SalesController } from "@api/features/sales/sales.controller";
 import type { AppVariables } from "@api/hono/appVariables.defs";
 import { getCorsOrigins } from "@api/hono/getCorsOrigins";
@@ -56,11 +58,13 @@ app.on(["GET", "POST"], "/api/auth/*", async (c) => {
 const routes = app
   .get("/api/v1/health", async (c) => c.text("OK"))
   .route("/api/v1/accounts", AccountsController)
+  .route("/api/v1/accounts/:id/ledger", LedgerController)
   .route("/api/v1/internal", InternalController)
   .route("/api/v1/journal", JournalController)
   .route("/api/v1/onboarding", OnboardingController)
   .route("/api/v1/products", ProductsController)
   .route("/api/v1/receipts", ReceiptsController)
+  .route("/api/v1/reports", ReportsController)
   .route("/api/v1/sales", SalesController);
 
 // OpenAPI
