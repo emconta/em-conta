@@ -40,7 +40,7 @@ export function makeRuntime(env: Cloudflare.Env) {
     Layer.mergeAll(
       Layer.provide(OnboardingService.Default, AccountsService.Default),
       AccountsService.Default,
-      ProductsService.Default,
+      Layer.provide(ProductsService.Default, InventoryService.Default),
       JournalService.Default,
       InventoryService.Default,
       ReceiptsService.Default,

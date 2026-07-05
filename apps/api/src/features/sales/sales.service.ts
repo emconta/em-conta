@@ -12,7 +12,7 @@ import type {
 } from "@api/db/schema";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
-import { InventoryService } from "@api/features/inventory/inventory.service";
+import { InventoryService, InventoryServiceError } from "@api/features/inventory/inventory.service";
 import ProductsRepo from "@api/features/products/products.repo";
 import SalesRepo, { type PostedSaleJournalEntry } from "@api/features/sales/sales.repo";
 import type { CreateSaleDto, SaleDetailDto, SaleItemDto, SaleListItemDto } from "@dto/sales.dto";
@@ -105,12 +105,20 @@ export class SalesService extends Effect.Service<SalesService>()("SalesService",
             productRevenue += lineAmount;
 
             if (product.trackInventory) {
-              const saleIssue = yield* inventoryService.prepareSaleIssue({
-                companyId: input.companyId,
-                productId: product.id,
-                quantity: item.quantity,
-                date: input.issueDate,
-              });
+              const saleIssue = yield* inventoryService
+                .prepareSaleIssue({
+                  companyId: input.companyId,
+                  productId: product.id,
+                  quantity: item.quantity,
+                  date: input.issueDate,
+                })
+                .pipe(
+                  Effect.mapError((err) =>
+                    err instanceof InventoryServiceError
+                      ? new CreateSaleError({ code: err.code })
+                      : err,
+                  ),
+                );
               const cost = moneyToCents(saleIssue.movement.totalCost);
 
               if (cost === null) {
@@ -420,6 +428,7 @@ export class CreateSaleError extends Data.TaggedError("CreateSaleError")<{
     | "INVALID_QUANTITY"
     | "MISSING_ACCOUNT"
     | "MISSING_CASH_ACCOUNT"
+    | "NEGATIVE_STOCK"
     | "PRODUCT_NOT_FOUND"
     | "UNSUPPORTED_DISCOUNT";
 }> {}

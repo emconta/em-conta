@@ -5,6 +5,7 @@ export const JournalSourceTypeDto = v.picklist([
   "sale",
   "receipt",
   "stock_issue",
+  "purchase",
   "manual",
   "reversal",
 ]);

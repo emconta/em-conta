@@ -1,6 +1,6 @@
 import type { InsertStockMovement } from "@api/db/schema";
-import ProductsRepo from "@api/features/products/products.repo";
 import StockMovementsRepo from "@api/features/inventory/stockMovements.repo";
+import ProductsRepo from "@api/features/products/products.repo";
 import { Data, Effect } from "effect";
 
 export type StockPosition = {
@@ -17,6 +17,16 @@ export type PrepareSaleIssueInput = {
   sourceId?: number | null;
 };
 
+export type CreateStockIntakeInput = {
+  companyId: number;
+  productId: number;
+  quantity: string;
+  unitCost: string;
+  date: Date;
+  inventoryAccountId: number;
+  paymentAccountId: number;
+};
+
 export class InventoryService extends Effect.Service<InventoryService>()("InventoryService", {
   effect: Effect.gen(function* () {
     const productsRepo = yield* ProductsRepo;
@@ -28,29 +38,13 @@ export class InventoryService extends Effect.Service<InventoryService>()("Invent
           companyId,
           productId,
         });
-        let quantity = 0n;
-        let totalCost = 0n;
+        const position = calculateStockPosition(movements);
 
-        for (const movement of movements) {
-          const movementQuantity = quantityToUnits(movement.quantity);
-          const movementCost = moneyToCents(movement.totalCost);
-
-          if (movementQuantity === null || movementCost === null) {
-            return yield* Effect.fail(
-              new InventoryServiceError({ code: "INVALID_STOCK_MOVEMENT" }),
-            );
-          }
-
-          if (movement.type === "sale_issue") {
-            quantity -= movementQuantity;
-            totalCost -= movementCost;
-          } else {
-            quantity += movementQuantity;
-            totalCost += movementCost;
-          }
+        if (position === "INVALID_STOCK_MOVEMENT") {
+          return yield* Effect.fail(new InventoryServiceError({ code: "INVALID_STOCK_MOVEMENT" }));
         }
 
-        return toStockPosition(quantity, totalCost);
+        return position;
       });
     }
 
@@ -118,15 +112,118 @@ export class InventoryService extends Effect.Service<InventoryService>()("Invent
       });
     }
 
+    function createStockIntake(input: CreateStockIntakeInput) {
+      return Effect.gen(function* () {
+        const product = yield* productsRepo.getByCompanyAndId({
+          companyId: input.companyId,
+          id: input.productId,
+        });
+
+        if (!product) {
+          return yield* Effect.fail(new InventoryServiceError({ code: "PRODUCT_NOT_FOUND" }));
+        }
+
+        if (product.type !== "product" || !product.trackInventory) {
+          return yield* Effect.fail(new InventoryServiceError({ code: "INVENTORY_NOT_TRACKED" }));
+        }
+
+        const quantity = quantityToUnits(input.quantity);
+        const unitCost = moneyToCents(input.unitCost);
+
+        if (quantity === null || quantity <= 0n) {
+          return yield* Effect.fail(new InventoryServiceError({ code: "INVALID_QUANTITY" }));
+        }
+
+        if (unitCost === null || unitCost <= 0n) {
+          return yield* Effect.fail(new InventoryServiceError({ code: "INVALID_AMOUNT" }));
+        }
+
+        const totalCost = calculateStockIntakeTotalCost({ quantity: input.quantity, unitCost: input.unitCost });
+
+        if (totalCost === null || totalCost <= 0n) {
+          return yield* Effect.fail(new InventoryServiceError({ code: "INVALID_AMOUNT" }));
+        }
+
+        const amount = centsToMoney(totalCost);
+
+        const posted = yield* stockMovementsRepo.createStockIntake({
+          movement: {
+            companyId: input.companyId,
+            productId: product.id,
+            type: "purchase",
+            quantity: unitsToQuantity(quantity),
+            unitCost: centsToMoney(unitCost),
+            totalCost: amount,
+            date: input.date,
+            sourceType: "purchase",
+          },
+          journalEntry: {
+            companyId: input.companyId,
+            sourceType: "purchase",
+            entryDate: input.date,
+            memo: `Stock intake: ${product.name}`,
+            status: "posted",
+            lines: [
+              { accountId: input.inventoryAccountId, type: "debit", amount },
+              { accountId: input.paymentAccountId, type: "credit", amount },
+            ],
+          },
+        });
+
+        const stock = yield* getCurrentStock({ companyId: input.companyId, productId: product.id });
+
+        return { journalEntryId: posted.entry.id, movement: posted.movement, stock };
+      });
+    }
+
     function recordMovement(movement: InsertStockMovement) {
       return stockMovementsRepo.insert(movement);
     }
 
-    return { getAverageCost, getCurrentStock, prepareSaleIssue, recordMovement };
+    return { createStockIntake, getAverageCost, getCurrentStock, prepareSaleIssue, recordMovement };
   }),
 }) {}
 
 const QUANTITY_SCALE = 1000n;
+
+export function calculateStockPosition(
+  movements: Pick<InsertStockMovement, "quantity" | "totalCost" | "type">[],
+) {
+  let quantity = 0n;
+  let totalCost = 0n;
+
+  for (const movement of movements) {
+    const movementQuantity = quantityToUnits(movement.quantity);
+    const movementCost = moneyToCents(movement.totalCost);
+
+    if (movementQuantity === null || movementCost === null) return "INVALID_STOCK_MOVEMENT" as const;
+
+    if (movement.type === "sale_issue") {
+      quantity -= movementQuantity;
+      totalCost -= movementCost;
+    } else {
+      quantity += movementQuantity;
+      totalCost += movementCost;
+    }
+  }
+
+  return toStockPosition(quantity, totalCost);
+}
+
+export function calculateStockIntakeTotalCost({
+  quantity,
+  unitCost,
+}: {
+  quantity: string;
+  unitCost: string;
+}) {
+  const quantityUnits = quantityToUnits(quantity);
+  const unitCostCents = moneyToCents(unitCost);
+
+  if (quantityUnits === null || unitCostCents === null) return null;
+
+  return divideRound(unitCostCents * quantityUnits, QUANTITY_SCALE);
+}
 
 function toStockPosition(quantity: bigint, totalCost: bigint): StockPosition {
   const averageUnitCost = quantity > 0n ? divideRound(totalCost * QUANTITY_SCALE, quantity) : 0n;
@@ -183,6 +280,7 @@ function divideRound(numerator: bigint, denominator: bigint) {
 export class InventoryServiceError extends Data.TaggedError("InventoryServiceError")<{
   readonly code:
     | "INVALID_QUANTITY"
+    | "INVALID_AMOUNT"
     | "INVALID_STOCK_MOVEMENT"
     | "INVENTORY_NOT_TRACKED"
     | "NEGATIVE_STOCK"

@@ -1,12 +1,16 @@
-import type { CreateProductDto } from "@dto/products.dto";
+import type { AccountDto } from "@dto/accounts.dto";
+import type { CreateProductDto, CreateStockIntakeDto, ProductDto } from "@dto/products.dto";
 import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card";
 import { Input } from "@web/components/ui/input";
 import { Label } from "@web/components/ui/label";
 import LoadingButton from "@web/components/ui/loadingButton";
+import { useAccounts } from "@web/features/accounts/accounts.queries";
 import {
   listProductsOptions,
   useCreateProduct,
+  useCreateStockIntake,
   useProducts,
 } from "@web/features/products/products.queries";
 import { PlusIcon } from "lucide-react";
@@ -22,11 +26,20 @@ const emptyProduct: CreateProductDto = {
   isActive: true,
 };
 
+const today = new Date().toISOString().slice(0, 10);
+
+type StockIntakeDraft = Omit<CreateStockIntakeDto, "paymentAccountId"> & {
+  paymentAccountId: string;
+};
+
 export default function ProductsPage() {
   const queryClient = useQueryClient();
+  const accounts = useAccounts();
   const products = useProducts();
   const { isPending, mutateAsync } = useCreateProduct();
+  const createStockIntake = useCreateStockIntake();
   const [form, setForm] = useState<CreateProductDto>(emptyProduct);
+  const [stockIntakes, setStockIntakes] = useState<Record<number, StockIntakeDraft>>({});
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +56,41 @@ export default function ProductsPage() {
     await queryClient.invalidateQueries({ queryKey: listProductsOptions.queryKey });
   }
 
+  async function submitStockIntake(product: ProductDto, event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const draft = stockIntakes[product.id] ?? emptyStockIntake();
+
+    if (!draft.paymentAccountId) {
+      toast.error("Selecione a conta de pagamento.");
+      return;
+    }
+
+    const result = await createStockIntake.mutateAsync({
+      productId: product.id,
+      json: {
+        date: new Date(`${draft.date}T12:00:00`).toISOString(),
+        paymentAccountId: Number(draft.paymentAccountId),
+        quantity: draft.quantity,
+        unitCost: draft.unitCost,
+      },
+    });
+
+    if (result.isErr()) {
+      toast.error(productErrorMessage(result.error.code));
+      return;
+    }
+
+    toast.success("Estoque atualizado.");
+    setStockIntakes((current) => ({ ...current, [product.id]: emptyStockIntake() }));
+    await queryClient.invalidateQueries({ queryKey: listProductsOptions.queryKey });
+  }
+
   const productList = products.data?.isOk() ? products.data.value : [];
+  const accountList = accounts.data?.isOk() ? accounts.data.value : [];
+  const paymentAccounts = accountList.filter(
+    (account) => account.key === "cash" || account.key === "bank_checking",
+  );
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -149,6 +196,18 @@ export default function ProductsPage() {
                     </div>
                     <span className="text-sm font-medium">R$ {product.defaultSalePrice}</span>
                   </div>
+                  {product.trackInventory ? (
+                    <StockIntakeForm
+                      accounts={paymentAccounts}
+                      draft={stockIntakes[product.id] ?? emptyStockIntake()}
+                      isPending={createStockIntake.isPending}
+                      product={product}
+                      onChange={(draft) =>
+                        setStockIntakes((current) => ({ ...current, [product.id]: draft }))
+                      }
+                      onSubmit={(event) => submitStockIntake(product, event)}
+                    />
+                  ) : null}
                 </div>
               ))}
               {!products.isLoading && productList.length === 0 ? (
@@ -160,6 +219,99 @@ export default function ProductsPage() {
       </div>
     </div>
   );
+}
+
+function StockIntakeForm({
+  accounts,
+  draft,
+  isPending,
+  onChange,
+  onSubmit,
+  product,
+}: {
+  accounts: AccountDto[];
+  draft: StockIntakeDraft;
+  isPending: boolean;
+  onChange: (draft: StockIntakeDraft) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  product: ProductDto;
+}) {
+  return (
+    <div className="mt-4 flex flex-col gap-3 border-t pt-3">
+      <div className="grid gap-2 text-sm md:grid-cols-3">
+        <StockMetric label="Qtd. atual" value={product.stock?.quantity ?? "0.000"} />
+        <StockMetric label="Custo total" value={`R$ ${product.stock?.totalCost ?? "0.00"}`} />
+        <StockMetric label="Custo médio" value={`R$ ${product.stock?.averageUnitCost ?? "0.00"}`} />
+      </div>
+
+      <form className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr_auto]" onSubmit={onSubmit}>
+        <Field label="Data">
+          <Input
+            required
+            type="date"
+            value={draft.date}
+            onChange={(event) => onChange({ ...draft, date: event.target.value })}
+          />
+        </Field>
+        <Field label="Quantidade">
+          <Input
+            required
+            inputMode="decimal"
+            value={draft.quantity}
+            placeholder="10.000"
+            onChange={(event) => onChange({ ...draft, quantity: event.target.value })}
+          />
+        </Field>
+        <Field label="Custo unitário">
+          <Input
+            required
+            inputMode="decimal"
+            value={draft.unitCost}
+            placeholder="25.00"
+            onChange={(event) => onChange({ ...draft, unitCost: event.target.value })}
+          />
+        </Field>
+        <Field label="Pagamento">
+          <select
+            required
+            className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            value={draft.paymentAccountId}
+            onChange={(event) => onChange({ ...draft, paymentAccountId: event.target.value })}
+          >
+            <option value="">Selecione</option>
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div className="flex items-end">
+          <Button type="submit" disabled={isPending}>
+            Adicionar estoque
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function StockMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted px-3 py-2">
+      <span className="block text-xs text-muted-foreground">{label}</span>
+      <strong className="font-medium">{value}</strong>
+    </div>
+  );
+}
+
+function emptyStockIntake(): StockIntakeDraft {
+  return {
+    date: today,
+    paymentAccountId: "",
+    quantity: "0.000",
+    unitCost: "0.00",
+  };
 }
 
 function Field({ children, label }: { children: React.ReactNode; label: string }) {
@@ -177,6 +329,20 @@ function productErrorMessage(code: string) {
       return "Serviços não podem controlar estoque.";
     case "COMPANY_NOT_FOUND":
       return "Finalize o onboarding antes de cadastrar itens.";
+    case "INVALID_AMOUNT":
+      return "Informe um custo unitário positivo.";
+    case "INVALID_DATE":
+      return "Informe uma data válida.";
+    case "INVALID_PAYMENT_ACCOUNT":
+      return "Selecione caixa ou banco como conta de pagamento.";
+    case "INVALID_QUANTITY":
+      return "Informe uma quantidade positiva.";
+    case "INVENTORY_NOT_TRACKED":
+      return "Este item não controla estoque.";
+    case "MISSING_ACCOUNT":
+      return "Conta de estoque não encontrada para a empresa.";
+    case "PRODUCT_NOT_FOUND":
+      return "Produto não encontrado.";
     default:
       return "Não foi possível cadastrar o item.";
   }

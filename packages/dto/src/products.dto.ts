@@ -1,4 +1,4 @@
-import { zMoney } from "@dto/common";
+import { zMoney, zQuantity } from "@dto/common";
 import * as v from "valibot";
 
 export const ProductTypeDto = v.picklist(["product", "service"]);
@@ -19,8 +19,23 @@ export const ProductDto = v.object({
   trackInventory: v.boolean(),
   costMethod: v.string(),
   isActive: v.boolean(),
+  stock: v.nullable(
+    v.object({
+      quantity: v.string(),
+      totalCost: v.string(),
+      averageUnitCost: v.string(),
+    }),
+  ),
+});
+
+export const CreateStockIntakeDto = v.object({
+  date: v.string(),
+  paymentAccountId: v.number(),
+  quantity: zQuantity,
+  unitCost: zMoney,
 });
 
 export type ProductTypeDto = v.InferInput<typeof ProductTypeDto>;
 export type CreateProductDto = v.InferInput<typeof CreateProductDto>;
 export type ProductDto = v.InferInput<typeof ProductDto>;
+export type CreateStockIntakeDto = v.InferInput<typeof CreateStockIntakeDto>;

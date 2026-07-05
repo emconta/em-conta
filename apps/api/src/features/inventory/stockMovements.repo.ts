@@ -1,6 +1,19 @@
 import Database from "@api/db/database";
-import { type InsertStockMovement, type StockMovement, stockMovements } from "@api/db/schema";
+import {
+  type InsertJournalEntry,
+  type InsertJournalEntryLine,
+  type InsertStockMovement,
+  type StockMovement,
+  journalEntries,
+  journalEntryLines,
+  stockMovements,
+} from "@api/db/schema";
+import { eq } from "drizzle-orm";
 import { Effect, Array as EffArray } from "effect";
+
+export type StockIntakeJournalEntry = Omit<InsertJournalEntry, "sourceId"> & {
+  lines: Omit<InsertJournalEntryLine, "entryId">[];
+};
 
 export default class StockMovementsRepo extends Effect.Service<StockMovementsRepo>()(
   "StockMovementsRepo",
@@ -30,7 +43,52 @@ export default class StockMovementsRepo extends Effect.Service<StockMovementsRep
         );
       }
 
-      return { insert, listByCompanyAndProduct };
+      function createStockIntake(input: {
+        movement: Omit<InsertStockMovement, "sourceId">;
+        journalEntry: StockIntakeJournalEntry;
+      }) {
+        return db.execute((q) =>
+          q.transaction(async (tx) => {
+            const insertedMovements = await tx.insert(stockMovements).values(input.movement).returning();
+            const insertedMovement = insertedMovements[0];
+
+            if (!insertedMovement) {
+              throw new Error("Stock movement insert returned no rows.");
+            }
+
+            const updatedMovements = await tx
+              .update(stockMovements)
+              .set({ sourceId: insertedMovement.id })
+              .where(eq(stockMovements.id, insertedMovement.id))
+              .returning();
+            const movement = updatedMovements[0];
+
+            if (!movement) {
+              throw new Error("Stock movement source link update returned no rows.");
+            }
+
+            const { lines, ...header } = input.journalEntry;
+            const insertedEntries = await tx
+              .insert(journalEntries)
+              .values({ ...header, sourceId: movement.id })
+              .returning();
+            const entry = insertedEntries[0];
+
+            if (!entry) {
+              throw new Error("Journal entry insert returned no rows.");
+            }
+
+            const journalLines = await tx
+              .insert(journalEntryLines)
+              .values(lines.map((line) => ({ ...line, entryId: entry.id })))
+              .returning();
+
+            return { entry, journalLines, movement };
+          }),
+        );
+      }
+
+      return { createStockIntake, insert, listByCompanyAndProduct };
     }),
   },
 ) {}

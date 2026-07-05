@@ -436,7 +436,7 @@ function saleErrorMessage(code: string) {
     case "PRODUCT_NOT_FOUND":
       return "Um dos itens selecionados não está disponível.";
     case "NEGATIVE_STOCK":
-      return "Estoque insuficiente para vender este produto.";
+      return "Estoque insuficiente: reduza a quantidade ou adicione estoque antes de vender.";
     case "MISSING_ACCOUNT":
       return "O plano de contas não tem uma conta obrigatória para essa venda.";
     case "UNSUPPORTED_DISCOUNT":

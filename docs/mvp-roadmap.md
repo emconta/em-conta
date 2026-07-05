@@ -28,7 +28,7 @@ Definition of done:
 
 ### 2. Simple Inventory Management
 
-Status: pending
+Status: completed
 
 Goal: let the user manage stock for products with `trackInventory` before selling them.
 
