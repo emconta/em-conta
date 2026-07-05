@@ -1,18 +1,10 @@
-import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
-import { Button } from "@web/components/ui/button";
+import { createFileRoute, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { AppSidebar } from "@web/components/app-sidebar";
+import { SiteHeader } from "@web/components/site-header";
+import { SidebarInset, SidebarProvider } from "@web/components/ui/sidebar";
+import { TooltipProvider } from "@web/components/ui/tooltip";
 import { getOnboardingStatusOptions } from "@web/features/onboarding/onboarding.queries";
 import { authClient } from "@web/lib/auth";
-import { cn } from "@web/lib/utils";
-import {
-  BarChart3Icon,
-  BookOpenIcon,
-  BoxesIcon,
-  LayoutDashboardIcon,
-  NotebookPenIcon,
-  ReceiptTextIcon,
-  ScaleIcon,
-  SheetIcon,
-} from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   async beforeLoad(ctx) {
@@ -30,57 +22,34 @@ export const Route = createFileRoute("/dashboard")({
   component: RouteComponent,
 });
 
-function RouteComponent() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+const pageTitles: Record<string, string> = {
+  "/dashboard": "Resumo",
+  "/dashboard/journal": "Lançamentos",
+  "/dashboard/ledger": "Razão",
+  "/dashboard/products": "Produtos",
+  "/dashboard/sales": "Vendas",
+  "/dashboard/reports/dre": "DRE",
+  "/dashboard/reports/balance-sheet": "Balanço Patrimonial",
+  "/dashboard/reports/current-liquidity": "Liquidez Corrente",
+};
 
-  const links = [
-    { to: "/dashboard", label: "Resumo", icon: LayoutDashboardIcon },
-    { to: "/dashboard/journal", label: "Lançamentos", icon: NotebookPenIcon },
-    { to: "/dashboard/ledger", label: "Razão", icon: ScaleIcon },
-    { to: "/dashboard/products", label: "Produtos", icon: BoxesIcon },
-    { to: "/dashboard/sales", label: "Vendas", icon: ReceiptTextIcon },
-    { to: "/dashboard/reports/dre", label: "DRE", icon: BarChart3Icon },
-    { to: "/dashboard/reports/balance-sheet", label: "BP", icon: SheetIcon },
-    { to: "/api/v1/docs", label: "API docs", icon: BookOpenIcon, external: true },
-  ] as const;
+function RouteComponent() {
+  const { me } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const normalizedPathname = pathname.replace(/\/$/, "") || "/dashboard";
+  const title = pageTitles[normalizedPathname] ?? "Dashboard";
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
-        <header className="flex flex-col gap-4 rounded-2xl bg-background p-4 ring-1 ring-border md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">em-conta</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Operação comercial</h1>
+    <TooltipProvider delayDuration={0}>
+      <SidebarProvider>
+        <AppSidebar user={me.user} />
+        <SidebarInset>
+          <SiteHeader title={title} />
+          <div className="flex flex-1 flex-col gap-6 bg-muted/30 p-4 md:p-6">
+            <Outlet />
           </div>
-
-          <nav className="flex flex-wrap gap-2">
-            {links.map(({ external, icon: Icon, label, to }) =>
-              external ? (
-                <Button key={to} variant="outline" asChild>
-                  <a href={to} target="_blank" rel="noreferrer">
-                    <Icon data-icon="inline-start" />
-                    {label}
-                  </a>
-                </Button>
-              ) : (
-                <Button
-                  key={to}
-                  variant={pathname === to ? "default" : "outline"}
-                  asChild
-                  className={cn(pathname === to && "pointer-events-none")}
-                >
-                  <Link to={to}>
-                    <Icon data-icon="inline-start" />
-                    {label}
-                  </Link>
-                </Button>
-              ),
-            )}
-          </nav>
-        </header>
-
-        <Outlet />
-      </div>
-    </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }

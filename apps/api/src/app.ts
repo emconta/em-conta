@@ -1,5 +1,6 @@
 import { createAuth } from "@api/auth";
 import { AccountsController } from "@api/features/accounts/accounts.controller";
+import { DashboardController } from "@api/features/dashboard/dashboard.controller";
 import { InternalController } from "@api/features/internal/internal.controller";
 import { JournalController } from "@api/features/journal/journal.controller";
 import { LedgerController } from "@api/features/ledger/ledger.controller";
@@ -59,6 +60,7 @@ const routes = app
   .get("/api/v1/health", async (c) => c.text("OK"))
   .route("/api/v1/accounts", AccountsController)
   .route("/api/v1/accounts/:id/ledger", LedgerController)
+  .route("/api/v1/dashboard", DashboardController)
   .route("/api/v1/internal", InternalController)
   .route("/api/v1/journal", JournalController)
   .route("/api/v1/onboarding", OnboardingController)

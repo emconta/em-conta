@@ -107,7 +107,7 @@ Definition of done:
 
 ### 7. Dashboard MVP
 
-Status: pending
+Status: completed
 
 Goal: make the dashboard useful for the final demo.
 

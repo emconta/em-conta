@@ -1,4 +1,5 @@
 export * from "@dto/accounts.dto";
+export * from "@dto/dashboard.dto";
 export * from "@dto/journal.dto";
 export * from "@dto/ledger.dto";
 export * from "@dto/onboarding.dto";

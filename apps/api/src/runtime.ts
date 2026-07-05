@@ -4,6 +4,7 @@ import AccountsRepo from "@api/features/accounts/accounts.repo";
 import { AccountsService } from "@api/features/accounts/accounts.service";
 import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
+import { DashboardService } from "@api/features/dashboard/dashboard.service";
 import { InventoryService } from "@api/features/inventory/inventory.service";
 import StockMovementsRepo from "@api/features/inventory/stockMovements.repo";
 import JournalRepo from "@api/features/journal/journal.repo";
@@ -46,6 +47,7 @@ export function makeRuntime(env: Cloudflare.Env) {
     Layer.mergeAll(
       Layer.provide(OnboardingService.Default, AccountsService.Default),
       AccountsService.Default,
+      DashboardService.Default,
       Layer.provide(ProductsService.Default, InventoryService.Default),
       JournalService.Default,
       LedgerService.Default,
