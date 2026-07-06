@@ -131,7 +131,22 @@ Definition of done:
 - Over-receipt is rejected if settlement UI/API exists.
 - Source links remain available for automatic postings.
 
-### 9. Demo Seed / Smoke Path
+### 9. Chart of Accounts / Plano de Contas
+
+Status: completed
+
+Goal: display the company's chart of accounts as a hierarchical, numbered plan and keep the ledger accessible per account.
+
+Definition of done:
+
+- Frontend page shows accounts grouped by category (Ativo, Passivo, Patrimônio Líquido, Receitas, Despesas).
+- Account codes are auto-generated from the hierarchy (e.g., `1 Ativo`, `1.1 Clientes a receber`, `1.2 Estoque`, `2 Passivo`, `2.1 Fornecedores a pagar`).
+- Hierarchy is collapsible and rows are visually indented by depth.
+- Clicking an account opens a detail modal with its ledger movements and running balance.
+- The old "Razão" route is replaced by the new "Plano de Contas" route in the sidebar and page titles.
+- Existing ledger API remains available for the detail modal.
+
+### 10. Demo Seed / Smoke Path
 
 Status: pending
 

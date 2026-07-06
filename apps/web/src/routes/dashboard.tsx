@@ -25,7 +25,7 @@ export const Route = createFileRoute("/dashboard")({
 const pageTitles: Record<string, string> = {
   "/dashboard": "Resumo",
   "/dashboard/journal": "Lançamentos",
-  "/dashboard/ledger": "Razão",
+  "/dashboard/accounts": "Plano de Contas",
   "/dashboard/products": "Produtos",
   "/dashboard/sales": "Vendas",
   "/dashboard/reports/dre": "DRE",

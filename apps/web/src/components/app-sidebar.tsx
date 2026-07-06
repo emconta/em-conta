@@ -20,7 +20,6 @@ import {
   NotebookPenIcon,
   PiggyBankIcon,
   ReceiptTextIcon,
-  ScaleIcon,
   SheetIcon,
 } from "lucide-react";
 
@@ -33,7 +32,7 @@ type User = {
 const mainNav = [
   { icon: LayoutDashboardIcon, label: "Resumo", url: "/dashboard" },
   { icon: NotebookPenIcon, label: "Lançamentos", url: "/dashboard/journal" },
-  { icon: ScaleIcon, label: "Razão", url: "/dashboard/ledger" },
+  { icon: LandmarkIcon, label: "Plano de Contas", url: "/dashboard/accounts" },
   { icon: BoxesIcon, label: "Produtos", url: "/dashboard/products" },
   { icon: ReceiptTextIcon, label: "Vendas", url: "/dashboard/sales" },
   { icon: HandCoinsIcon, label: "Contas a Receber", url: "/dashboard/receivables" },
