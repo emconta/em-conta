@@ -492,7 +492,7 @@ function AccountCombobox({
   return (
     <Field>
       <FieldLabel>Conta</FieldLabel>
-      <Combobox
+      <Combobox<AccountDto>
         items={groups}
         value={selectedAccount}
         itemToStringLabel={(item: AccountDto | AccountGroup) =>

@@ -1,8 +1,27 @@
 import { Button } from "@web/components/ui/button"
+import { shouldPreventDialogDismissForFloatingLayer } from "@web/components/ui/floating-layer-dismiss"
 import { cn } from "@web/lib/utils"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import type * as React from "react"
+import * as React from "react"
+
+const DialogContentPortalContainerContext =
+  React.createContext<React.RefObject<HTMLDivElement | null> | null>(null)
+
+function useDialogContentPortalContainer() {
+  return React.useContext(DialogContentPortalContainerContext)
+}
+
+function setRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value)
+    return
+  }
+
+  if (ref) {
+    ref.current = value
+  }
+}
 
 function Dialog({
   ...props
@@ -51,12 +70,23 @@ function DialogContent({
   onInteractOutside,
   onPointerDownOutside,
   showCloseButton = true,
+  ref,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
-  function preventDismissWhenSelectWasOpen(event: Event) {
-    if (document.body.dataset.selectWasOpenAtPointerDown === "true") {
+  const contentRef = React.useRef<HTMLDivElement | null>(null)
+
+  const setContentRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      contentRef.current = node
+      setRef(ref, node)
+    },
+    [ref]
+  )
+
+  function preventDismissWhenFloatingLayerWasOpen(event: Event) {
+    if (shouldPreventDialogDismissForFloatingLayer()) {
       event.preventDefault()
     }
   }
@@ -72,32 +102,35 @@ function DialogContent({
         )}
         onFocusOutside={(event) => {
           onFocusOutside?.(event)
-          if (!event.defaultPrevented) preventDismissWhenSelectWasOpen(event)
+          if (!event.defaultPrevented) preventDismissWhenFloatingLayerWasOpen(event)
         }}
         onInteractOutside={(event) => {
           onInteractOutside?.(event)
-          if (!event.defaultPrevented) preventDismissWhenSelectWasOpen(event)
+          if (!event.defaultPrevented) preventDismissWhenFloatingLayerWasOpen(event)
         }}
         onPointerDownOutside={(event) => {
           onPointerDownOutside?.(event)
-          if (!event.defaultPrevented) preventDismissWhenSelectWasOpen(event)
+          if (!event.defaultPrevented) preventDismissWhenFloatingLayerWasOpen(event)
         }}
+        ref={setContentRef}
         {...props}
       >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2"
-              size="icon-sm"
-            >
-              <XIcon
-              />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
-        )}
+        <DialogContentPortalContainerContext.Provider value={contentRef}>
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close data-slot="dialog-close" asChild>
+              <Button
+                variant="ghost"
+                className="absolute top-2 right-2"
+                size="icon-sm"
+              >
+                <XIcon
+                />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogPrimitive.Close>
+          )}
+        </DialogContentPortalContainerContext.Provider>
       </DialogPrimitive.Content>
     </DialogPortal>
   )
@@ -183,4 +216,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  useDialogContentPortalContainer,
 }

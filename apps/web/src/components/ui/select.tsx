@@ -2,77 +2,36 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "radix-ui"
 import { DismissableLayer } from "radix-ui/internal"
 
+import {
+  setFloatingLayerOpen,
+  useFloatingLayerDismissGuard,
+} from "@web/components/ui/floating-layer-dismiss"
 import { cn } from "@web/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
-
-const openSelects = new Set<symbol>()
-
-function setDocumentSelectState(open: boolean) {
-  if (openSelects.size > 0 || open) {
-    document.body.dataset.selectLayerOpen = "true"
-  } else {
-    delete document.body.dataset.selectLayerOpen
-  }
-}
-
-function SelectOutsideDismissGuard() {
-  React.useEffect(() => {
-    function handlePointerDownCapture() {
-      if (openSelects.size > 0) {
-        document.body.dataset.selectWasOpenAtPointerDown = "true"
-      }
-    }
-
-    function handleClick() {
-      window.setTimeout(() => {
-        delete document.body.dataset.selectWasOpenAtPointerDown
-      }, 0)
-    }
-
-    document.addEventListener("pointerdown", handlePointerDownCapture, true)
-    document.addEventListener("click", handleClick, true)
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDownCapture, true)
-      document.removeEventListener("click", handleClick, true)
-    }
-  }, [])
-
-  return null
-}
 
 function Select({
   onOpenChange,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
   const id = React.useMemo(() => Symbol("select"), [])
+  useFloatingLayerDismissGuard()
 
   React.useEffect(
     () => () => {
-      openSelects.delete(id)
-      setDocumentSelectState(false)
+      setFloatingLayerOpen(id, false)
     },
     [id],
   )
 
   return (
-    <>
-      <SelectOutsideDismissGuard />
-      <SelectPrimitive.Root
-        data-slot="select"
-        onOpenChange={(open) => {
-          if (open) {
-            openSelects.add(id)
-          } else {
-            openSelects.delete(id)
-          }
-
-          setDocumentSelectState(open)
-          onOpenChange?.(open)
-        }}
-        {...props}
-      />
-    </>
+    <SelectPrimitive.Root
+      data-slot="select"
+      onOpenChange={(open) => {
+        setFloatingLayerOpen(id, open)
+        onOpenChange?.(open)
+      }}
+      {...props}
+    />
   )
 }
 
