@@ -403,7 +403,7 @@ export function buildCurrentLiquidityReport({
 
   const ratio = hasCurrentLiabilities ? formatRatio(currentAssets, currentLiabilities) : null;
 
-  const display = ratio ?? "N/A";
+  const display = ratio ?? "—";
 
   return {
     dateTo: dateTo.toISOString().slice(0, 10),

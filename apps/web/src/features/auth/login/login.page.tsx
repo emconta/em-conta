@@ -48,7 +48,7 @@ export default function LoginPage() {
         <PiggyBankIcon className="size-12 text-primary" />
 
         <hgroup className="flex flex-col gap-1 items-center">
-          <h1 className="text-xl font-medium">Bem vindo à emConta</h1>
+          <h1 className="text-xl font-medium">Bem-vindo à emConta</h1>
 
           <p className="text-sm text-muted-foreground">
             Faça login com sua conta Google ou seu email.

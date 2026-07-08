@@ -594,7 +594,7 @@ describe("Current Liquidity report builder", () => {
     expect(report.currentLiabilities).toBe("0.00");
     expect(report.ratio).toBeNull();
     expect(report.hasCurrentLiabilities).toBe(false);
-    expect(report.display).toBe("N/A");
+    expect(report.display).toBe("—");
   });
 
   it("calculates demo liquidity after sale, CMV and expense", () => {
@@ -648,7 +648,7 @@ describe("Current Liquidity report builder", () => {
     expect(report.currentLiabilities).toBe("0.00");
     expect(report.ratio).toBeNull();
     expect(report.hasCurrentLiabilities).toBe(false);
-    expect(report.display).toBe("N/A");
+    expect(report.display).toBe("—");
   });
 
   it("ignores equity, revenue and expense accounts", () => {
@@ -727,7 +727,7 @@ describe("Current Liquidity report builder", () => {
     expect(report.currentLiabilities).toBe("-500.00");
     expect(report.ratio).toBeNull();
     expect(report.hasCurrentLiabilities).toBe(false);
-    expect(report.display).toBe("N/A");
+    expect(report.display).toBe("—");
   });
 
   it("truncates ratio to two decimal places", () => {

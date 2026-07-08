@@ -714,7 +714,7 @@ function accountCategoryMetadata(category: string) {
     case "liabilities":
       return { label: "Passivo", order: 2 };
     case "equity":
-      return { label: "Patrimônio líquido", order: 3 };
+      return { label: "Patrimônio Líquido", order: 3 };
     case "revenue":
       return { label: "Receitas", order: 4 };
     case "expenses":

@@ -87,7 +87,7 @@ describe("Dashboard summary builder", () => {
     expect(summary.dre.totalRevenue).toBe("0.00");
     expect(summary.dre.totalExpenses).toBe("0.00");
     expect(summary.dre.netResult).toBe("0.00");
-    expect(summary.liquidity.display).toBe("N/A");
+    expect(summary.liquidity.display).toBe("—");
     expect(summary.liquidity.ratio).toBeNull();
   });
 
@@ -139,7 +139,7 @@ describe("Dashboard summary builder", () => {
     expect(Number(summary.dre.netResult)).toBe(
       Number(summary.dre.totalRevenue) - Number(summary.dre.totalExpenses),
     );
-    expect(summary.liquidity.display).toBe("N/A");
+    expect(summary.liquidity.display).toBe("—");
   });
 
   it("returns a signed net result from DRE totals for the dashboard card", () => {

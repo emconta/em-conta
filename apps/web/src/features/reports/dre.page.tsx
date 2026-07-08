@@ -20,7 +20,7 @@ function formatSignedMoney(value: string) {
 }
 
 function formatPercent(value: string | null) {
-  if (value === null) return "N/A";
+  if (value === null) return "—";
 
   return `${Number(value).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
