@@ -1,5 +1,6 @@
 import type { ReceivableItemDto } from "@dto/receivables.dto";
 import { useQueryClient } from "@tanstack/react-query";
+import { AccountingHelp } from "@web/components/accounting-help";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
 import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
@@ -211,7 +212,12 @@ export default function ReceivablesPage() {
       <section className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">Contas a receber</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Contas a Receber</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Contas a Receber</h1>
+            <AccountingHelp title="Contas a receber">
+              Valores de vendas a prazo que ainda precisam entrar no caixa ou banco.
+            </AccountingHelp>
+          </div>
         </div>
       </section>
 
@@ -295,7 +301,12 @@ export default function ReceivablesPage() {
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Novo recebimento</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>Novo recebimento</DialogTitle>
+              <AccountingHelp title="Recebimento">
+                Quita parte ou todo o saldo pendente e transfere o valor para caixa ou banco.
+              </AccountingHelp>
+            </div>
             <DialogDescription>Registre o recebimento de uma venda a prazo.</DialogDescription>
           </DialogHeader>
           <form className="flex flex-col gap-4" onSubmit={handleCreateReceipt}>

@@ -1,6 +1,7 @@
 import type { AccountDto } from "@dto/accounts.dto";
 import type { CreateProductDto, CreateStockIntakeDto, ProductDto } from "@dto/products.dto";
 import { useQueryClient } from "@tanstack/react-query";
+import { AccountingHelp } from "@web/components/accounting-help";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
 import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
@@ -262,7 +263,12 @@ export default function ProductsPage() {
     <div className="flex w-full flex-col gap-6">
       <section className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Catálogo e estoque</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Produtos e serviços</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Produtos e serviços</h1>
+          <AccountingHelp title="Estoque e custo médio">
+            Produtos com estoque guardam quantidade e custo médio. Na venda, esse custo vira CMV.
+          </AccountingHelp>
+        </div>
       </section>
 
       <DataTable
@@ -322,10 +328,7 @@ export default function ProductsPage() {
         }}
       />
 
-      <Dialog
-        open={stockProduct !== null}
-        onOpenChange={handleStockOpenChange}
-      >
+      <Dialog open={stockProduct !== null} onOpenChange={handleStockOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>

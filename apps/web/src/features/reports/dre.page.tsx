@@ -1,3 +1,4 @@
+import { AccountingHelp } from "@web/components/accounting-help";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card";
 import { Field, FieldLabel } from "@web/components/ui/field";
@@ -47,7 +48,12 @@ export default function DrePage() {
     <div className="flex w-full flex-col gap-6">
       <section className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Demonstração de Resultado</p>
-        <h1 className="text-2xl font-semibold tracking-tight">DRE</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">DRE</h1>
+          <AccountingHelp title="DRE">
+            Mostra se a empresa teve lucro ou prejuízo no período: receitas menos custos e despesas.
+          </AccountingHelp>
+        </div>
       </section>
 
       <Card>
@@ -110,9 +116,14 @@ export default function DrePage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-medium text-muted-foreground">
-                Resultado
-              </CardTitle>
+              <div className="flex items-center gap-1">
+                <CardTitle className="text-base font-medium text-muted-foreground">
+                  Resultado
+                </CardTitle>
+                <AccountingHelp title="Resultado da DRE">
+                  Valor final do período. Positivo indica lucro; negativo indica prejuízo.
+                </AccountingHelp>
+              </div>
             </CardHeader>
             <CardContent>
               <p

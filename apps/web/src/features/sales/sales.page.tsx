@@ -2,6 +2,7 @@ import type { CreateSaleDto, SaleDetailDto, SaleListItemDto } from "@dto/sales.d
 import type { ProductDto } from "@dto/products.dto";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { AccountingHelp } from "@web/components/accounting-help";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
 import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
@@ -232,7 +233,12 @@ export default function SalesPage() {
       <section className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">Vendas</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Vendas</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Vendas</h1>
+            <AccountingHelp title="Vendas">
+              Venda à vista aumenta caixa ou banco. Venda a prazo cria valor em contas a receber.
+            </AccountingHelp>
+          </div>
         </div>
       </section>
 
@@ -261,7 +267,13 @@ export default function SalesPage() {
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Nova venda</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>Nova venda</DialogTitle>
+              <AccountingHelp title="Lançamento da venda">
+                Ao salvar, o sistema posta a receita. Produtos com estoque também geram CMV e baixa
+                do estoque.
+              </AccountingHelp>
+            </div>
             <DialogDescription>
               Crie vendas à vista ou a prazo. Cadastre produtos/serviços antes se eles ainda não
               aparecerem na lista.

@@ -1,3 +1,4 @@
+import { AccountingHelp } from "@web/components/accounting-help";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card";
 import { Field, FieldLabel } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
@@ -47,7 +48,12 @@ export default function BalanceSheetPage() {
     <div className="flex w-full flex-col gap-6">
       <section className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Balanço Patrimonial</p>
-        <h1 className="text-2xl font-semibold tracking-tight">BP</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">BP</h1>
+          <AccountingHelp title="Balanço Patrimonial">
+            Foto da posição da empresa: bens e direitos devem fechar com obrigações e patrimônio.
+          </AccountingHelp>
+        </div>
       </section>
 
       <Card>
@@ -107,6 +113,9 @@ export default function BalanceSheetPage() {
                     <XCircleIcon className="size-5 text-red-600" />
                   )}
                   Passivo + Patrimônio Líquido
+                  <AccountingHelp title="Equação do balanço">
+                    O balanço está correto quando Ativo é igual a Passivo mais Patrimônio Líquido.
+                  </AccountingHelp>
                 </CardTitle>
               </CardHeader>
               <CardContent>

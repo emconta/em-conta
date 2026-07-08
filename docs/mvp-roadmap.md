@@ -232,7 +232,7 @@ Definition of done:
 
 ### 15. Accounting Help Hover Cards
 
-Status: pending
+Status: completed
 
 Goal: add contextual help so users without accounting experience can understand key system terms.
 

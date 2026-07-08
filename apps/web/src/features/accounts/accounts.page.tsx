@@ -1,5 +1,6 @@
 import type { AccountDto } from "@dto/accounts.dto";
 import type { AccountLedgerRowDto } from "@dto/ledger.dto";
+import { AccountingHelp } from "@web/components/accounting-help";
 import {
   Dialog,
   DialogContent,
@@ -179,7 +180,13 @@ export default function AccountsPage() {
       <section className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">Plano de contas</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Plano de Contas</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Plano de Contas</h1>
+            <AccountingHelp title="Plano de Contas">
+              Lista organizada das contas usadas nos lançamentos. Clique em uma conta para ver o
+              razão.
+            </AccountingHelp>
+          </div>
         </div>
         <Button
           type="button"
@@ -285,9 +292,14 @@ export default function AccountsPage() {
       >
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>
-              {selectedAccount ? `${selectedAccount.name}` : "Movimentos da conta"}
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>
+                {selectedAccount ? `${selectedAccount.name}` : "Movimentos da conta"}
+              </DialogTitle>
+              <AccountingHelp title="Razão da conta">
+                Mostra os débitos, créditos e o saldo acumulado de uma conta, em ordem de data.
+              </AccountingHelp>
+            </div>
             <DialogDescription>
               {selectedAccount
                 ? `Natureza ${selectedAccount.nature === "debit" ? "devedora" : "credora"} · Clique fora para fechar`

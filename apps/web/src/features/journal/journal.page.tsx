@@ -5,6 +5,7 @@ import type {
   JournalEntryListItemDto,
 } from "@dto/journal.dto";
 import { useQueryClient } from "@tanstack/react-query";
+import { AccountingHelp } from "@web/components/accounting-help";
 import { Button } from "@web/components/ui/button";
 import {
   Combobox,
@@ -89,7 +90,9 @@ export default function JournalPage() {
   const isBalanced = totals.debit > 0 && totals.debit === totals.credit;
   const canSubmit = filledLines.length >= 2 && invalidLineCount === 0 && isBalanced;
   const isCreateDirty =
-    entryDate !== today || memo !== "" || lines.some((line) => line.accountId !== "" || isFilledLine(line));
+    entryDate !== today ||
+    memo !== "" ||
+    lines.some((line) => line.accountId !== "" || isFilledLine(line));
   const columns = useMemo<ColumnDef<JournalEntryListItemDto>[]>(
     () => [
       {
@@ -163,7 +166,9 @@ export default function JournalPage() {
     }
 
     if (invalidLineCount > 0) {
-      toast.error("Cada partida precisa de uma conta e apenas um valor positivo em débito ou crédito.");
+      toast.error(
+        "Cada partida precisa de uma conta e apenas um valor positivo em débito ou crédito.",
+      );
       return;
     }
 
@@ -224,7 +229,13 @@ export default function JournalPage() {
     <div className="flex w-full flex-col gap-6">
       <section className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Partidas dobradas</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Lançamentos</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">Lançamentos</h1>
+          <AccountingHelp title="Lançamentos contábeis">
+            Cada fato tem débitos e créditos de mesmo valor. Use aqui também para representar contas
+            a pagar simples.
+          </AccountingHelp>
+        </div>
       </section>
 
       <DataTable
@@ -247,7 +258,13 @@ export default function JournalPage() {
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="w-[calc(100vw-2rem)] overflow-hidden sm:max-w-5xl">
           <DialogHeader>
-            <DialogTitle>Novo lançamento</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>Novo lançamento</DialogTitle>
+              <AccountingHelp title="Débito e crédito">
+                Débito e crédito são os dois lados do lançamento. O total dos débitos precisa ser
+                igual ao total dos créditos.
+              </AccountingHelp>
+            </div>
             <DialogDescription>
               Crie partidas dobradas manuais. Débitos e créditos precisam fechar antes de salvar.
             </DialogDescription>
@@ -422,7 +439,9 @@ function JournalForm({
                     </TableCell>
                     <TableCell className="align-top">
                       <Field>
-                        <FieldLabel className="sr-only">Descrição da partida {index + 1}</FieldLabel>
+                        <FieldLabel className="sr-only">
+                          Descrição da partida {index + 1}
+                        </FieldLabel>
                         <Input
                           value={line.description}
                           placeholder={memo || "Opcional"}
@@ -443,7 +462,10 @@ function JournalForm({
                           onValueChange={(value) =>
                             updateLine(
                               line.key,
-                              { creditAmount: value === "" ? line.creditAmount : "", debitAmount: value },
+                              {
+                                creditAmount: value === "" ? line.creditAmount : "",
+                                debitAmount: value,
+                              },
                               onLinesChange,
                             )
                           }
@@ -461,7 +483,10 @@ function JournalForm({
                           onValueChange={(value) =>
                             updateLine(
                               line.key,
-                              { creditAmount: value, debitAmount: value === "" ? line.debitAmount : "" },
+                              {
+                                creditAmount: value,
+                                debitAmount: value === "" ? line.debitAmount : "",
+                              },
                               onLinesChange,
                             )
                           }
@@ -490,8 +515,12 @@ function JournalForm({
               )}
               <TableRow className="border-t-2 font-medium hover:bg-transparent">
                 <TableCell colSpan={2}>Totais</TableCell>
-                <TableCell className="text-right tabular-nums">R$ {formatMoney(totals.debit)}</TableCell>
-                <TableCell className="text-right tabular-nums">R$ {formatMoney(totals.credit)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  R$ {formatMoney(totals.debit)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  R$ {formatMoney(totals.credit)}
+                </TableCell>
                 <TableCell />
               </TableRow>
             </TableBody>
