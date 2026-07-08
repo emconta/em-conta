@@ -7,6 +7,7 @@ const MaskedInput = IMaskMixin(({ inputRef, ...props }) => (
 ));
 
 type MaskedNumericInputProps = Omit<React.ComponentProps<"input">, "value" | "onChange" | "defaultValue"> & {
+  maskLazy?: boolean;
   value?: string;
   onValueChange: (value: string) => void;
 };
@@ -48,6 +49,7 @@ export function QuantityInput({
 function NumericInput({
   fixedFractionDigits = false,
   mask = Number,
+  maskLazy,
   onBlur,
   onValueChange,
   scale,
@@ -69,7 +71,7 @@ function NumericInput({
   return (
     <MaskedInput
       mask={mask}
-      {...maskOptions(scale, fixedFractionDigits, mask)}
+      {...maskOptions(scale, fixedFractionDigits, mask, maskLazy)}
       unmask={false}
       inputMode="decimal"
       value={maskedValue}
@@ -118,7 +120,12 @@ function formatMaskedValue(
   return mask === Number ? formattedValue : `R$ ${formattedValue}`;
 }
 
-function maskOptions(scale: number, fixedFractionDigits: boolean, mask: NumberConstructor | string) {
+function maskOptions(
+  scale: number,
+  fixedFractionDigits: boolean,
+  mask: NumberConstructor | string,
+  lazy?: boolean,
+) {
   const numberOptions = {
     radix: ",",
     thousandsSeparator: ".",
@@ -132,7 +139,7 @@ function maskOptions(scale: number, fixedFractionDigits: boolean, mask: NumberCo
   if (mask === Number) return numberOptions;
 
   return {
-    lazy: false,
+    lazy: lazy ?? false,
     blocks: {
       num: {
         mask: Number,

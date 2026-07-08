@@ -31,13 +31,6 @@ import { Input } from "@web/components/ui/input";
 import LoadingButton from "@web/components/ui/loadingButton";
 import { MoneyInput } from "@web/components/ui/masked-input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@web/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -60,9 +53,9 @@ import { toast } from "sonner";
 type DraftLine = {
   key: string;
   accountId: string;
-  amount: string;
+  creditAmount: string;
+  debitAmount: string;
   description: string;
-  type: CreateManualJournalEntryDto["lines"][number]["type"];
 };
 
 const today = new Date().toISOString().slice(0, 10);
@@ -80,7 +73,7 @@ export default function JournalPage() {
   const entryDetail = useJournalEntry(selectedEntryId);
   const [entryDate, setEntryDate] = useState(today);
   const [memo, setMemo] = useState("");
-  const [lines, setLines] = useState<DraftLine[]>([newDraftLine("debit"), newDraftLine("credit")]);
+  const [lines, setLines] = useState<DraftLine[]>([newDraftLine()]);
 
   const entryList = entries.data?.isOk() ? entries.data.value : [];
   const selectedEntry = entryDetail.data?.isOk() ? entryDetail.data.value : null;
@@ -91,18 +84,12 @@ export default function JournalPage() {
     return matchesSource && matchesStatus;
   });
   const totals = useMemo(() => sumLines(lines), [lines]);
+  const filledLines = useMemo(() => lines.filter(isFilledLine), [lines]);
+  const invalidLineCount = filledLines.filter((line) => !isValidLine(line)).length;
   const isBalanced = totals.debit > 0 && totals.debit === totals.credit;
+  const canSubmit = filledLines.length >= 2 && invalidLineCount === 0 && isBalanced;
   const isCreateDirty =
-    entryDate !== today ||
-    memo !== "" ||
-    lines.length !== 2 ||
-    lines.some(
-      (line, index) =>
-        line.accountId !== "" ||
-        line.amount !== "" ||
-        line.description !== "" ||
-        line.type !== (index === 0 ? "debit" : "credit"),
-    );
+    entryDate !== today || memo !== "" || lines.some((line) => line.accountId !== "" || isFilledLine(line));
   const columns = useMemo<ColumnDef<JournalEntryListItemDto>[]>(
     () => [
       {
@@ -170,20 +157,25 @@ export default function JournalPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (lines.some((line) => !line.accountId)) {
-      toast.error("Selecione uma conta para todas as partidas.");
+    if (filledLines.length < 2) {
+      toast.error("Informe pelo menos duas partidas com conta e valor.");
+      return;
+    }
+
+    if (invalidLineCount > 0) {
+      toast.error("Cada partida precisa de uma conta e apenas um valor positivo em débito ou crédito.");
+      return;
+    }
+
+    if (!isBalanced) {
+      toast.error("Total de débitos deve ser igual ao total de créditos.");
       return;
     }
 
     const payload: CreateManualJournalEntryDto = {
       entryDate: new Date(`${entryDate}T12:00:00`).toISOString(),
       memo,
-      lines: lines.map((line) => ({
-        accountId: Number(line.accountId),
-        amount: line.amount,
-        description: line.description || null,
-        type: line.type,
-      })),
+      lines: filledLines.map((line) => toPayloadLine(line)),
     };
 
     const result = await mutateAsync(payload);
@@ -201,7 +193,7 @@ export default function JournalPage() {
   function resetCreateForm() {
     setEntryDate(today);
     setMemo("");
-    setLines([newDraftLine("debit"), newDraftLine("credit")]);
+    setLines([newDraftLine()]);
   }
 
   function closeCreateDialog() {
@@ -253,7 +245,7 @@ export default function JournalPage() {
       />
 
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="w-[calc(100vw-2rem)] overflow-hidden sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Novo lançamento</DialogTitle>
             <DialogDescription>
@@ -262,6 +254,8 @@ export default function JournalPage() {
           </DialogHeader>
           <JournalForm
             entryDate={entryDate}
+            canSubmit={canSubmit}
+            invalidLineCount={invalidLineCount}
             isBalanced={isBalanced}
             isPending={isPending}
             lines={lines}
@@ -311,6 +305,8 @@ export default function JournalPage() {
 
 function JournalForm({
   entryDate,
+  canSubmit,
+  invalidLineCount,
   isBalanced,
   isPending,
   lines,
@@ -322,6 +318,8 @@ function JournalForm({
   totals,
 }: {
   entryDate: string;
+  canSubmit: boolean;
+  invalidLineCount: number;
   isBalanced: boolean;
   isPending: boolean;
   lines: DraftLine[];
@@ -333,7 +331,7 @@ function JournalForm({
   totals: { credit: number; debit: number };
 }) {
   return (
-    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+    <form className="flex min-w-0 flex-col gap-5" onSubmit={onSubmit}>
       <div className="grid gap-4 md:grid-cols-[180px_1fr]">
         <Field>
           <FieldLabel htmlFor="journal-date">Data</FieldLabel>
@@ -358,101 +356,165 @@ function JournalForm({
         </Field>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="font-medium">Partidas</h3>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onLinesChange((current) => [...current, newDraftLine("debit")])}
-          >
-            <PlusIcon data-icon="inline-start" />
-            Adicionar partida
-          </Button>
+      <div className="flex min-w-0 flex-col gap-3">
+        <h3 className="font-medium">Partidas</h3>
+        <div className="max-w-full overflow-x-auto rounded-xl border">
+          <Table className="min-w-[760px] table-fixed lg:min-w-[860px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[330px]">Conta</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead className="w-[140px]">Débito</TableHead>
+                <TableHead className="w-[140px]">Crédito</TableHead>
+                <TableHead className="w-14 text-right">
+                  <span className="sr-only">Ações</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lines.map((line, index) =>
+                isBlankLine(line) ? (
+                  <TableRow key={line.key} className="border-b-0 hover:bg-transparent">
+                    <TableCell colSpan={5} className="align-top">
+                      <div className="w-[314px] max-w-full">
+                        <AccountCombobox
+                          accountId={line.accountId}
+                          label={`Adicionar partida ${index + 1}`}
+                          placeholder="Adicionar uma linha"
+                          onChange={(accountId) =>
+                            updateLine(
+                              line.key,
+                              {
+                                accountId,
+                                description:
+                                  accountId && line.description.trim() === "" && memo.trim() !== ""
+                                    ? memo
+                                    : line.description,
+                              },
+                              onLinesChange,
+                            )
+                          }
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow key={line.key} className="border-b-0 hover:bg-transparent">
+                    <TableCell className="align-top">
+                      <AccountCombobox
+                        accountId={line.accountId}
+                        label={`Conta da partida ${index + 1}`}
+                        placeholder="Selecione a conta"
+                        onChange={(accountId) =>
+                          updateLine(
+                            line.key,
+                            {
+                              accountId,
+                              description:
+                                accountId && line.description.trim() === "" && memo.trim() !== ""
+                                  ? memo
+                                  : line.description,
+                            },
+                            onLinesChange,
+                          )
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Field>
+                        <FieldLabel className="sr-only">Descrição da partida {index + 1}</FieldLabel>
+                        <Input
+                          value={line.description}
+                          placeholder={memo || "Opcional"}
+                          onChange={(event) =>
+                            updateLine(line.key, { description: event.target.value }, onLinesChange)
+                          }
+                        />
+                      </Field>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Field>
+                        <FieldLabel className="sr-only">Débito da partida {index + 1}</FieldLabel>
+                        <MoneyInput
+                          aria-label={`Débito da partida ${index + 1}`}
+                          maskLazy
+                          placeholder="R$ 0,00"
+                          value={line.debitAmount}
+                          onValueChange={(value) =>
+                            updateLine(
+                              line.key,
+                              { creditAmount: value === "" ? line.creditAmount : "", debitAmount: value },
+                              onLinesChange,
+                            )
+                          }
+                        />
+                      </Field>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Field>
+                        <FieldLabel className="sr-only">Crédito da partida {index + 1}</FieldLabel>
+                        <MoneyInput
+                          aria-label={`Crédito da partida ${index + 1}`}
+                          maskLazy
+                          placeholder="R$ 0,00"
+                          value={line.creditAmount}
+                          onValueChange={(value) =>
+                            updateLine(
+                              line.key,
+                              { creditAmount: value, debitAmount: value === "" ? line.debitAmount : "" },
+                              onLinesChange,
+                            )
+                          }
+                        />
+                      </Field>
+                    </TableCell>
+                    <TableCell className="text-right align-top">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Remover partida ${index + 1}`}
+                        onClick={() =>
+                          onLinesChange((current) =>
+                            ensureTrailingBlank(
+                              current.filter((candidate) => candidate.key !== line.key),
+                            ),
+                          )
+                        }
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+              <TableRow className="border-t-2 font-medium hover:bg-transparent">
+                <TableCell colSpan={2}>Totais</TableCell>
+                <TableCell className="text-right tabular-nums">R$ {formatMoney(totals.debit)}</TableCell>
+                <TableCell className="text-right tabular-nums">R$ {formatMoney(totals.credit)}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
-
-        {lines.map((line, index) => (
-          <div
-            key={line.key}
-            className="grid gap-3 rounded-xl border bg-background p-3 md:grid-cols-[1fr_140px_140px_1fr_auto]"
-          >
-            <AccountCombobox
-              accountId={line.accountId}
-              onChange={(accountId) => updateLine(line.key, { accountId }, onLinesChange)}
-            />
-
-            <Field>
-              <FieldLabel>Tipo</FieldLabel>
-              <Select
-                value={line.type}
-                onValueChange={(value) =>
-                  updateLine(
-                    line.key,
-                    { type: value as CreateManualJournalEntryDto["lines"][number]["type"] },
-                    onLinesChange,
-                  )
-                }
-              >
-                <SelectTrigger size="sm" className="w-full" aria-label="Tipo da partida">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="debit">Débito</SelectItem>
-                  <SelectItem value="credit">Crédito</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field>
-              <FieldLabel>Valor</FieldLabel>
-              <MoneyInput
-                aria-label={`Valor da partida ${index + 1}`}
-                value={line.amount}
-                onValueChange={(value) => updateLine(line.key, { amount: value }, onLinesChange)}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel>Descrição</FieldLabel>
-              <Input
-                value={line.description}
-                placeholder="Opcional"
-                onChange={(event) =>
-                  updateLine(line.key, { description: event.target.value }, onLinesChange)
-                }
-              />
-            </Field>
-
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                disabled={lines.length === 2}
-                aria-label={`Remover partida ${index + 1}`}
-                onClick={() =>
-                  onLinesChange((current) =>
-                    current.filter((candidate) => candidate.key !== line.key),
-                  )
-                }
-              >
-                <Trash2Icon />
-              </Button>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div
         className="flex flex-col gap-3 rounded-xl bg-muted p-4 md:flex-row md:items-center md:justify-between"
         data-balanced={isBalanced}
       >
-        <div className="grid gap-3 text-sm md:grid-cols-3">
+        <div className="grid gap-3 text-sm md:grid-cols-4">
           <Summary label="Débitos" value={totals.debit} />
           <Summary label="Créditos" value={totals.credit} />
           <Summary label="Diferença" value={Math.abs(totals.debit - totals.credit)} />
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground">Estado</span>
+            <strong className={canSubmit ? "text-emerald-700" : "text-destructive"}>
+              {canSubmit ? "Fechado" : validationMessage(totals, invalidLineCount)}
+            </strong>
+          </div>
         </div>
-        <LoadingButton loading={isPending ? { text: "Salvando..." } : false}>
+        <LoadingButton disabled={!canSubmit} loading={isPending ? { text: "Salvando..." } : false}>
           Salvar lançamento
         </LoadingButton>
       </div>
@@ -534,10 +596,14 @@ type AccountGroup = {
 
 function AccountCombobox({
   accountId,
+  label = "Conta",
   onChange,
+  placeholder = "Selecione a conta",
 }: {
   accountId: string;
+  label?: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   const accounts = useAccountsList();
   const selectedAccount = accounts.find((account) => String(account.id) === accountId) ?? null;
@@ -545,7 +611,7 @@ function AccountCombobox({
 
   return (
     <Field>
-      <FieldLabel>Conta</FieldLabel>
+      <FieldLabel className="sr-only">{label}</FieldLabel>
       <Combobox<AccountDto>
         items={groups}
         value={selectedAccount}
@@ -554,7 +620,7 @@ function AccountCombobox({
         }
         onValueChange={(account) => onChange(account ? String(account.id) : "")}
       >
-        <ComboboxInput placeholder="Selecione a conta" />
+        <ComboboxInput placeholder={placeholder} />
         <ComboboxContent>
           <ComboboxEmpty>Nenhuma conta encontrada.</ComboboxEmpty>
           <ComboboxList>
@@ -634,13 +700,13 @@ function accountSearchLabel(account: AccountDto) {
   return [account.name, category, account.nature, account.key].filter(Boolean).join(" ");
 }
 
-function newDraftLine(type: DraftLine["type"]): DraftLine {
+function newDraftLine(): DraftLine {
   return {
     key: crypto.randomUUID(),
     accountId: "",
-    amount: "",
+    creditAmount: "",
+    debitAmount: "",
     description: "",
-    type,
   };
 }
 
@@ -649,7 +715,9 @@ function updateLine(
   patch: Partial<DraftLine>,
   setLines: React.Dispatch<React.SetStateAction<DraftLine[]>>,
 ) {
-  setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
+  setLines((current) =>
+    ensureTrailingBlank(current.map((line) => (line.key === key ? { ...line, ...patch } : line))),
+  );
 }
 
 function sumLines(lines: DraftLine[]) {
@@ -657,13 +725,62 @@ function sumLines(lines: DraftLine[]) {
   let debit = 0;
 
   for (const line of lines) {
-    const amount = Number(line.amount || 0);
-
-    if (line.type === "debit") debit += amount;
-    else credit += amount;
+    debit += Number(line.debitAmount || 0);
+    credit += Number(line.creditAmount || 0);
   }
 
   return { credit, debit };
+}
+
+function ensureTrailingBlank(lines: DraftLine[]) {
+  return [...lines.filter(isFilledLine), newDraftLine()];
+}
+
+function isBlankLine(line: DraftLine) {
+  return (
+    line.accountId === "" &&
+    line.creditAmount === "" &&
+    line.debitAmount === "" &&
+    line.description.trim() === ""
+  );
+}
+
+function isFilledLine(line: DraftLine) {
+  return !isBlankLine(line);
+}
+
+function isValidLine(line: DraftLine) {
+  const debit = Number(line.debitAmount || 0);
+  const credit = Number(line.creditAmount || 0);
+  const hasDebit = debit > 0;
+  const hasCredit = credit > 0;
+
+  return line.accountId !== "" && hasDebit !== hasCredit;
+}
+
+function toPayloadLine(line: DraftLine): CreateManualJournalEntryDto["lines"][number] {
+  const debit = Number(line.debitAmount || 0);
+  const credit = Number(line.creditAmount || 0);
+
+  if (!isValidLine(line)) {
+    throw new Error("Invalid journal line cannot be converted to payload.");
+  }
+
+  const type = debit > 0 ? "debit" : "credit";
+
+  return {
+    accountId: Number(line.accountId),
+    amount: type === "debit" ? debit.toFixed(2) : credit.toFixed(2),
+    description: line.description || null,
+    type,
+  };
+}
+
+function validationMessage(totals: { credit: number; debit: number }, invalidLineCount: number) {
+  if (invalidLineCount > 0) return "Revise as partidas";
+  if (totals.debit === 0 && totals.credit === 0) return "Informe as partidas";
+
+  return `Diferença de R$ ${formatMoney(Math.abs(totals.debit - totals.credit))}`;
 }
 
 function formatMoney(value: number) {

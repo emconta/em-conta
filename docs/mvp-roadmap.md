@@ -175,7 +175,7 @@ Definition of done:
 
 ### 12. Manual Journal Entry Form Revamp
 
-Status: pending
+Status: completed
 
 Goal: redesign the manual journal entry form so users can clearly see and edit each line's debit and credit side, similar to Odoo's journal entry table.
 
