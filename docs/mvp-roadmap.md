@@ -205,7 +205,7 @@ Definition of done:
 
 ### 13. Root Redirect To Dashboard
 
-Status: pending
+Status: completed
 
 Goal: redirect visits to `/` to `/dashboard` so authenticated users land on the main app screen.
 
