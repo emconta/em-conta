@@ -104,7 +104,7 @@ export default function DashboardPage() {
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       {summary.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {["cash", "revenue", "expenses", "liquidity"].map((key) => (
+          {["cash", "revenue", "expenses", "net-profit"].map((key) => (
             <Skeleton key={key} className="h-28 w-full" />
           ))}
         </div>

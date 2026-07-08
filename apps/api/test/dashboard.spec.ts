@@ -119,7 +119,32 @@ describe("Dashboard summary builder", () => {
     expect(summary.dre.totalRevenue).toBe("10000.00");
     expect(summary.dre.totalExpenses).toBe("5000.00");
     expect(summary.dre.netResult).toBe("5000.00");
+    expect(Number(summary.dre.netResult)).toBe(
+      Number(summary.dre.totalRevenue) - Number(summary.dre.totalExpenses),
+    );
     expect(summary.liquidity.display).toBe("N/A");
+  });
+
+  it("returns a signed net result from DRE totals for the dashboard card", () => {
+    const dreRows = [
+      makeLine(
+        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { amount: "2000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 50, name: "Despesas operacionais", category: "expenses" },
+        { amount: "5000.00", type: "debit" },
+      ),
+    ];
+
+    const summary = buildSummary([], dreRows);
+
+    expect(summary.dre.totalRevenue).toBe("2000.00");
+    expect(summary.dre.totalExpenses).toBe("5000.00");
+    expect(summary.dre.netResult).toBe("-3000.00");
+    expect(Number(summary.dre.netResult)).toBe(
+      Number(summary.dre.totalRevenue) - Number(summary.dre.totalExpenses),
+    );
   });
 
   it("includes bank_checking in cash and bank balance", () => {

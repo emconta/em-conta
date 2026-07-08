@@ -218,7 +218,7 @@ Definition of done:
 
 ### 14. Dashboard Current Month Net Profit Card
 
-Status: pending
+Status: completed
 
 Goal: replace the dashboard current liquidity card with current-month net profit.
 
