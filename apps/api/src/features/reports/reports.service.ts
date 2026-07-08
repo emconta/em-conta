@@ -8,6 +8,8 @@ import type {
   CurrentLiquidityReportDto,
   DreBreakdownItemDto,
   DreReportDto,
+  DreSectionDto,
+  DreSectionItemDto,
 } from "@dto/reports.dto";
 import { Data, Effect } from "effect";
 
@@ -211,6 +213,11 @@ export function buildDreReport(
   let totalExpenses = 0n;
   const revenueBreakdown: DreBreakdownItemDto[] = [];
   const expenseBreakdown: DreBreakdownItemDto[] = [];
+  const grossRevenueItems: DreSectionItemDto[] = [];
+  const costItems: DreSectionItemDto[] = [];
+  const operationalExpenseItems: DreSectionItemDto[] = [];
+  let totalCosts = 0n;
+  let totalOperationalExpenses = 0n;
 
   for (const [accountId, { accountKey, accountName, category, netAmount }] of accountTotals) {
     const item = {
@@ -223,16 +230,37 @@ export function buildDreReport(
     if (category === "revenue") {
       totalRevenue += netAmount;
       revenueBreakdown.push(item);
+      grossRevenueItems.push({ ...item, percentOfRevenue: null });
     } else {
       totalExpenses += netAmount;
       expenseBreakdown.push(item);
+
+      if (accountKey === "cogs") {
+        totalCosts += netAmount;
+        costItems.push({ ...item, percentOfRevenue: null });
+      } else {
+        totalOperationalExpenses += netAmount;
+        operationalExpenseItems.push({ ...item, percentOfRevenue: null });
+      }
     }
   }
 
   revenueBreakdown.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
   expenseBreakdown.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+  grossRevenueItems.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+  costItems.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+  operationalExpenseItems.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
 
   const netResult = totalRevenue - totalExpenses;
+  const sections = buildDreSections({
+    grossRevenueItems,
+    netResult,
+    operationalExpenseItems,
+    totalCosts,
+    totalOperationalExpenses,
+    totalRevenue,
+    costItems,
+  });
 
   return {
     period: {
@@ -244,7 +272,76 @@ export function buildDreReport(
     netResult: moneyFromCents(netResult),
     revenueBreakdown,
     expenseBreakdown,
+    sections,
   };
+}
+
+function buildDreSections({
+  costItems,
+  grossRevenueItems,
+  netResult,
+  operationalExpenseItems,
+  totalCosts,
+  totalOperationalExpenses,
+  totalRevenue,
+}: {
+  costItems: DreSectionItemDto[];
+  grossRevenueItems: DreSectionItemDto[];
+  netResult: bigint;
+  operationalExpenseItems: DreSectionItemDto[];
+  totalCosts: bigint;
+  totalOperationalExpenses: bigint;
+  totalRevenue: bigint;
+}): DreSectionDto[] {
+  return [
+    {
+      key: "gross_revenue",
+      label: "Receita bruta",
+      total: moneyFromCents(totalRevenue),
+      percentOfRevenue: formatPercentOfRevenue(totalRevenue, totalRevenue),
+      items: withRevenuePercentages(grossRevenueItems, totalRevenue),
+    },
+    {
+      key: "costs",
+      label: "Custos",
+      total: moneyFromCents(totalCosts),
+      percentOfRevenue: formatPercentOfRevenue(totalCosts, totalRevenue),
+      items: withRevenuePercentages(costItems, totalRevenue),
+    },
+    {
+      key: "operational_expenses",
+      label: "Despesas operacionais",
+      total: moneyFromCents(totalOperationalExpenses),
+      percentOfRevenue: formatPercentOfRevenue(totalOperationalExpenses, totalRevenue),
+      items: withRevenuePercentages(operationalExpenseItems, totalRevenue),
+    },
+    {
+      key: "net_result",
+      label: "Resultado",
+      total: moneyFromCents(netResult),
+      percentOfRevenue: formatPercentOfRevenue(netResult, totalRevenue),
+      items: [],
+    },
+  ];
+}
+
+function withRevenuePercentages(items: DreSectionItemDto[], totalRevenue: bigint) {
+  return items.map((item) => ({
+    ...item,
+    percentOfRevenue: formatPercentOfRevenue(signedMoneyToCents(item.amount), totalRevenue),
+  }));
+}
+
+function formatPercentOfRevenue(amount: bigint, totalRevenue: bigint) {
+  if (totalRevenue === 0n) return null;
+
+  const scaled = (amount * 10000n) / totalRevenue;
+  const negative = scaled < 0n;
+  const absoluteScaled = negative ? -scaled : scaled;
+  const units = absoluteScaled / 100n;
+  const decimals = (absoluteScaled % 100n).toString().padStart(2, "0");
+
+  return negative ? `-${units}.${decimals}` : `${units}.${decimals}`;
 }
 
 export function buildCurrentLiquidityReport({

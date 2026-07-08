@@ -84,6 +84,13 @@ describe("DRE report builder", () => {
     expect(report.totalRevenue).toBe("0.00");
     expect(report.totalExpenses).toBe("0.00");
     expect(report.netResult).toBe("0.00");
+    expect(report.sections.map((section) => section.label)).toEqual([
+      "Receita bruta",
+      "Custos",
+      "Despesas operacionais",
+      "Resultado",
+    ]);
+    expect(report.sections.every((section) => section.percentOfRevenue === null)).toBe(true);
   });
 
   it("calculates demo DRE with sale, CMV and expense", () => {
@@ -117,6 +124,68 @@ describe("DRE report builder", () => {
     expect(report.totalRevenue).toBe("10000.00");
     expect(report.totalExpenses).toBe("5000.00");
     expect(report.netResult).toBe("5000.00");
+
+    expect(report.sections).toMatchObject([
+      { key: "gross_revenue", total: "10000.00", percentOfRevenue: "100.00" },
+      { key: "costs", total: "4000.00", percentOfRevenue: "40.00" },
+      { key: "operational_expenses", total: "1000.00", percentOfRevenue: "10.00" },
+      { key: "net_result", total: "5000.00", percentOfRevenue: "50.00" },
+    ]);
+    expect(report.sections[0].items).toMatchObject([
+      { accountName: "Receita de vendas", amount: "10000.00", percentOfRevenue: "100.00" },
+    ]);
+    expect(report.sections[1].items).toMatchObject([
+      { accountName: "CMV", amount: "4000.00", percentOfRevenue: "40.00" },
+    ]);
+    expect(report.sections[2].items).toMatchObject([
+      { accountName: "Despesas operacionais", amount: "1000.00", percentOfRevenue: "10.00" },
+    ]);
+  });
+
+  it("keeps detailed section totals reconciled with legacy totals", () => {
+    const report = buildDreReport(period, [
+      makeLine(
+        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { amount: "10000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 21, name: "Receita de servicos", category: "revenue", key: "services_revenue" },
+        { amount: "5000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 30, name: "Custo de mercadorias vendidas", category: "expenses", key: "cogs" },
+        { amount: "4000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 50, name: "Aluguel", category: "expenses" },
+        { amount: "1000.00", type: "debit" },
+      ),
+    ]);
+
+    const [grossRevenue, costs, operationalExpenses, netResult] = report.sections;
+
+    expect(grossRevenue.total).toBe(report.totalRevenue);
+    expect(Number(costs.total) + Number(operationalExpenses.total)).toBe(
+      Number(report.totalExpenses),
+    );
+    expect(netResult.total).toBe(report.netResult);
+    expect(Number(netResult.total)).toBe(
+      Number(grossRevenue.total) - Number(costs.total) - Number(operationalExpenses.total),
+    );
+  });
+
+  it("uses null section percentages when gross revenue is zero", () => {
+    const report = buildDreReport(period, [
+      makeLine(
+        { id: 50, name: "Despesas operacionais", category: "expenses" },
+        { amount: "1000.00", type: "debit" },
+      ),
+    ]);
+
+    expect(report.totalRevenue).toBe("0.00");
+    expect(report.netResult).toBe("-1000.00");
+    expect(report.sections.every((section) => section.percentOfRevenue === null)).toBe(true);
+    expect(report.sections[2].items[0].percentOfRevenue).toBeNull();
   });
 
   it("reduces revenue with debits and expenses with credits", () => {
@@ -159,6 +228,11 @@ describe("DRE report builder", () => {
     expect(report.totalRevenue).toBe("2000.00");
     expect(report.totalExpenses).toBe("3000.00");
     expect(report.netResult).toBe("-1000.00");
+    expect(report.sections[3]).toMatchObject({
+      key: "net_result",
+      total: "-1000.00",
+      percentOfRevenue: "-50.00",
+    });
   });
 
   it("groups breakdown by account", () => {

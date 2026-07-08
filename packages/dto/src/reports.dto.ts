@@ -12,6 +12,22 @@ export const DreBreakdownItemDto = v.object({
   amount: v.string(),
 });
 
+export const DreSectionItemDto = v.object({
+  accountId: v.number(),
+  accountName: v.string(),
+  accountKey: v.nullable(v.string()),
+  amount: v.string(),
+  percentOfRevenue: v.nullable(v.string()),
+});
+
+export const DreSectionDto = v.object({
+  key: v.string(),
+  label: v.string(),
+  total: v.string(),
+  percentOfRevenue: v.nullable(v.string()),
+  items: v.array(DreSectionItemDto),
+});
+
 export const DreReportDto = v.object({
   period: DrePeriodDto,
   totalRevenue: v.string(),
@@ -19,6 +35,7 @@ export const DreReportDto = v.object({
   netResult: v.string(),
   revenueBreakdown: v.array(DreBreakdownItemDto),
   expenseBreakdown: v.array(DreBreakdownItemDto),
+  sections: v.array(DreSectionDto),
 });
 
 export const dateSchema = v.pipe(
@@ -74,6 +91,8 @@ export const CurrentLiquidityReportDto = v.object({
 
 export type DrePeriodDto = v.InferInput<typeof DrePeriodDto>;
 export type DreBreakdownItemDto = v.InferInput<typeof DreBreakdownItemDto>;
+export type DreSectionItemDto = v.InferInput<typeof DreSectionItemDto>;
+export type DreSectionDto = v.InferInput<typeof DreSectionDto>;
 export type DreReportDto = v.InferInput<typeof DreReportDto>;
 export type DreQueryDto = v.InferInput<typeof DreQueryDto>;
 export type BalanceSheetAccountDto = v.InferInput<typeof BalanceSheetAccountDto>;

@@ -4,12 +4,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/
 import { Field, FieldLabel } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
 import { useDreReport } from "@web/features/reports/reports.queries";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 function formatMoney(value: string) {
   const numeric = Number(value);
 
   return numeric.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatSignedMoney(value: string) {
+  const numeric = Number(value);
+  const absolute = formatMoney(String(Math.abs(numeric)));
+
+  return numeric < 0 ? `-R$ ${absolute}` : `R$ ${absolute}`;
+}
+
+function formatPercent(value: string | null) {
+  if (value === null) return "N/A";
+
+  return `${Number(value).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
 }
 
 function getCurrentMonthRange() {
@@ -137,41 +153,72 @@ export default function DrePage() {
             </CardContent>
           </Card>
 
-          {data.revenueBreakdown.length > 0 ? (
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <CardTitle className="text-base">Receitas por conta</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="flex flex-col gap-2">
-                  {data.revenueBreakdown.map((item) => (
-                    <li key={item.accountId} className="flex justify-between border-b py-2 text-sm">
-                      <span>{item.accountName}</span>
-                      <span className="tabular-nums">R$ {formatMoney(item.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {data.expenseBreakdown.length > 0 ? (
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <CardTitle className="text-base">Despesas por conta</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="flex flex-col gap-2">
-                  {data.expenseBreakdown.map((item) => (
-                    <li key={item.accountId} className="flex justify-between border-b py-2 text-sm">
-                      <span>{item.accountName}</span>
-                      <span className="tabular-nums">R$ {formatMoney(item.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ) : null}
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-base">DRE detalhada</CardTitle>
+              <CardDescription>
+                Valores por seção e por conta, com percentual sobre a receita bruta quando houver
+                receita no período.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Linha
+                      </th>
+                      <th scope="col" className="px-4 py-2 text-right font-medium">
+                        Valor
+                      </th>
+                      <th scope="col" className="py-2 pl-4 text-right font-medium">
+                        % da receita
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.sections.map((section) => (
+                      <Fragment key={section.key}>
+                        <tr key={section.key} className="border-b bg-muted/40 font-medium">
+                          <th scope="row" className="py-2 pr-4 text-left">
+                            {section.label}
+                          </th>
+                          <td className="px-4 py-2 text-right tabular-nums">
+                            {formatSignedMoney(section.total)}
+                          </td>
+                          <td className="py-2 pl-4 text-right tabular-nums">
+                            {formatPercent(section.percentOfRevenue)}
+                          </td>
+                        </tr>
+                        {section.items.length > 0 ? (
+                          section.items.map((item) => (
+                            <tr key={`${section.key}-${item.accountId}`} className="border-b">
+                              <td className="py-2 pr-4 pl-4 text-muted-foreground">
+                                {item.accountName}
+                              </td>
+                              <td className="px-4 py-2 text-right tabular-nums">
+                                {formatSignedMoney(item.amount)}
+                              </td>
+                              <td className="py-2 pl-4 text-right tabular-nums text-muted-foreground">
+                                {formatPercent(item.percentOfRevenue)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : section.key !== "net_result" ? (
+                          <tr key={`${section.key}-empty`} className="border-b">
+                            <td className="py-2 pr-4 pl-4 text-muted-foreground" colSpan={3}>
+                              Nenhuma conta com movimento nesta seção.
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : null}
     </div>

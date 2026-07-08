@@ -246,7 +246,7 @@ Definition of done:
 
 ### 16. Detailed DRE Report
 
-Status: pending
+Status: completed
 
 Goal: make DRE more useful by showing the values that compose each calculated total.
 
