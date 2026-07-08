@@ -18,6 +18,7 @@ import {
   ComboboxList,
 } from "@web/components/ui/combobox";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
+import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +54,7 @@ import {
 } from "@web/features/journal/journal.queries";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import type * as React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type DraftLine = {
@@ -71,6 +72,8 @@ export default function JournalPage() {
   const entries = useJournalEntries();
   const { isPending, mutateAsync } = useCreateManualJournalEntry();
   const [createOpen, setCreateOpen] = useState(false);
+  const [discardCreateOpen, setDiscardCreateOpen] = useState(false);
+  const ignoreNextCreateCloseRef = useRef(false);
   const [sourceFilter, setSourceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
@@ -89,6 +92,17 @@ export default function JournalPage() {
   });
   const totals = useMemo(() => sumLines(lines), [lines]);
   const isBalanced = totals.debit > 0 && totals.debit === totals.credit;
+  const isCreateDirty =
+    entryDate !== today ||
+    memo !== "" ||
+    lines.length !== 2 ||
+    lines.some(
+      (line, index) =>
+        line.accountId !== "" ||
+        line.amount !== "" ||
+        line.description !== "" ||
+        line.type !== (index === 0 ? "debit" : "credit"),
+    );
   const columns = useMemo<ColumnDef<JournalEntryListItemDto>[]>(
     () => [
       {
@@ -180,10 +194,38 @@ export default function JournalPage() {
     }
 
     toast.success(`Lançamento #${result.value.id} criado.`);
-    setCreateOpen(false);
+    closeCreateDialog();
+    await queryClient.invalidateQueries({ queryKey: listJournalEntriesOptions.queryKey });
+  }
+
+  function resetCreateForm() {
+    setEntryDate(today);
     setMemo("");
     setLines([newDraftLine("debit"), newDraftLine("credit")]);
-    await queryClient.invalidateQueries({ queryKey: listJournalEntriesOptions.queryKey });
+  }
+
+  function closeCreateDialog() {
+    setCreateOpen(false);
+    resetCreateForm();
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    if (open) {
+      setCreateOpen(true);
+      return;
+    }
+
+    if (ignoreNextCreateCloseRef.current || discardCreateOpen) {
+      ignoreNextCreateCloseRef.current = false;
+      return;
+    }
+
+    if (isCreateDirty) {
+      setDiscardCreateOpen(true);
+      return;
+    }
+
+    closeCreateDialog();
   }
 
   return (
@@ -210,7 +252,7 @@ export default function JournalPage() {
         }
       />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Novo lançamento</DialogTitle>
@@ -232,6 +274,18 @@ export default function JournalPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <DiscardChangesAlert
+        open={discardCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) ignoreNextCreateCloseRef.current = true;
+          setDiscardCreateOpen(open);
+        }}
+        onConfirm={() => {
+          setDiscardCreateOpen(false);
+          closeCreateDialog();
+        }}
+      />
 
       <Dialog
         open={selectedEntryId !== null}
@@ -584,7 +638,7 @@ function newDraftLine(type: DraftLine["type"]): DraftLine {
   return {
     key: crypto.randomUUID(),
     accountId: "",
-    amount: "0.00",
+    amount: "",
     description: "",
     type,
   };

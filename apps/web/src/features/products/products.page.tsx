@@ -3,6 +3,7 @@ import type { CreateProductDto, CreateStockIntakeDto, ProductDto } from "@dto/pr
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
+import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
 import {
   Dialog,
   DialogContent,
@@ -31,13 +32,13 @@ import {
 } from "@web/features/products/products.queries";
 import { PackagePlusIcon, PlusIcon } from "lucide-react";
 import type * as React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const emptyProduct: CreateProductDto = {
   name: "",
   type: "service",
-  defaultSalePrice: "0.00",
+  defaultSalePrice: "",
   trackInventory: false,
   isActive: true,
 };
@@ -55,6 +56,10 @@ export default function ProductsPage() {
   const { isPending, mutateAsync } = useCreateProduct();
   const createStockIntake = useCreateStockIntake();
   const [createOpen, setCreateOpen] = useState(false);
+  const [discardCreateOpen, setDiscardCreateOpen] = useState(false);
+  const [discardStockOpen, setDiscardStockOpen] = useState(false);
+  const ignoreNextCreateCloseRef = useRef(false);
+  const ignoreNextStockCloseRef = useRef(false);
   const [stockProduct, setStockProduct] = useState<ProductDto | null>(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [inventoryFilter, setInventoryFilter] = useState("all");
@@ -75,6 +80,17 @@ export default function ProductsPage() {
 
     return matchesType && matchesInventory;
   });
+  const isCreateDirty =
+    form.name !== "" ||
+    form.type !== emptyProduct.type ||
+    form.defaultSalePrice !== "" ||
+    form.trackInventory !== emptyProduct.trackInventory ||
+    form.isActive !== emptyProduct.isActive;
+  const isStockDirty =
+    stockIntake.date !== today ||
+    stockIntake.paymentAccountId !== "" ||
+    stockIntake.quantity !== "" ||
+    stockIntake.unitCost !== "";
 
   const columns = useMemo<ColumnDef<ProductDto>[]>(
     () => [
@@ -159,8 +175,7 @@ export default function ProductsPage() {
     }
 
     toast.success("Produto cadastrado.");
-    setCreateOpen(false);
-    setForm(emptyProduct);
+    closeCreateDialog();
     await queryClient.invalidateQueries({ queryKey: listProductsOptions.queryKey });
   }
 
@@ -190,9 +205,57 @@ export default function ProductsPage() {
     }
 
     toast.success("Estoque atualizado.");
+    closeStockDialog();
+    await queryClient.invalidateQueries({ queryKey: listProductsOptions.queryKey });
+  }
+
+  function resetCreateForm() {
+    setForm(emptyProduct);
+  }
+
+  function closeCreateDialog() {
+    setCreateOpen(false);
+    resetCreateForm();
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    if (open) {
+      setCreateOpen(true);
+      return;
+    }
+
+    if (ignoreNextCreateCloseRef.current || discardCreateOpen) {
+      ignoreNextCreateCloseRef.current = false;
+      return;
+    }
+
+    if (isCreateDirty) {
+      setDiscardCreateOpen(true);
+      return;
+    }
+
+    closeCreateDialog();
+  }
+
+  function closeStockDialog() {
     setStockProduct(null);
     setStockIntake(emptyStockIntake());
-    await queryClient.invalidateQueries({ queryKey: listProductsOptions.queryKey });
+  }
+
+  function handleStockOpenChange(open: boolean) {
+    if (open) return;
+
+    if (ignoreNextStockCloseRef.current || discardStockOpen) {
+      ignoreNextStockCloseRef.current = false;
+      return;
+    }
+
+    if (isStockDirty) {
+      setDiscardStockOpen(true);
+      return;
+    }
+
+    closeStockDialog();
   }
 
   return (
@@ -234,7 +297,7 @@ export default function ProductsPage() {
         }
       />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Novo produto ou serviço</DialogTitle>
@@ -247,11 +310,21 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
 
+      <DiscardChangesAlert
+        open={discardCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) ignoreNextCreateCloseRef.current = true;
+          setDiscardCreateOpen(open);
+        }}
+        onConfirm={() => {
+          setDiscardCreateOpen(false);
+          closeCreateDialog();
+        }}
+      />
+
       <Dialog
         open={stockProduct !== null}
-        onOpenChange={(open) => {
-          if (!open) setStockProduct(null);
-        }}
+        onOpenChange={handleStockOpenChange}
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -275,6 +348,18 @@ export default function ProductsPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <DiscardChangesAlert
+        open={discardStockOpen}
+        onOpenChange={(open) => {
+          if (!open) ignoreNextStockCloseRef.current = true;
+          setDiscardStockOpen(open);
+        }}
+        onConfirm={() => {
+          setDiscardStockOpen(false);
+          closeStockDialog();
+        }}
+      />
     </div>
   );
 }
@@ -449,8 +534,8 @@ function emptyStockIntake(): StockIntakeDraft {
   return {
     date: today,
     paymentAccountId: "",
-    quantity: "0.000",
-    unitCost: "0.00",
+    quantity: "",
+    unitCost: "",
   };
 }
 

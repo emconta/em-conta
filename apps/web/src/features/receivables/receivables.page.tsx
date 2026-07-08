@@ -2,6 +2,7 @@ import type { ReceivableItemDto } from "@dto/receivables.dto";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
+import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,7 @@ import {
 import { useCreateReceipt } from "@web/features/receipts/receipts.queries";
 import { PlusIcon } from "lucide-react";
 import type * as React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function ReceivablesPage() {
@@ -42,6 +43,8 @@ export default function ReceivablesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [discardCreateOpen, setDiscardCreateOpen] = useState(false);
+  const ignoreNextCreateCloseRef = useRef(false);
   const [receiptSaleId, setReceiptSaleId] = useState<number | null>(null);
   const [receiptDate, setReceiptDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [receiptAmount, setReceiptAmount] = useState("");
@@ -65,6 +68,12 @@ export default function ReceivablesPage() {
   const selectedReceipts = selectedSaleId
     ? receiptList.filter((r) => r.saleId === selectedSaleId)
     : [];
+  const today = new Date().toISOString().slice(0, 10);
+  const isCreateDirty =
+    receiptDate !== today ||
+    receiptAmount !== "" ||
+    receiptCashAccountId !== "" ||
+    receiptNotes !== "";
 
   const columns = useMemo<ColumnDef<ReceivableItemDto>[]>(
     () => [
@@ -147,13 +156,41 @@ export default function ReceivablesPage() {
     }
 
     toast.success("Recebimento registrado.");
-    setCreateOpen(false);
-    setReceiptAmount("");
-    setReceiptNotes("");
-    setReceiptDate(new Date().toISOString().slice(0, 10));
-    setReceiptCashAccountId("");
+    closeCreateDialog();
     await queryClient.invalidateQueries({ queryKey: listReceiptsOptions.queryKey });
     await queryClient.invalidateQueries({ queryKey: listReceivablesOptions.queryKey });
+  }
+
+  function resetCreateForm() {
+    setReceiptSaleId(null);
+    setReceiptDate(today);
+    setReceiptAmount("");
+    setReceiptCashAccountId("");
+    setReceiptNotes("");
+  }
+
+  function closeCreateDialog() {
+    setCreateOpen(false);
+    resetCreateForm();
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    if (open) {
+      setCreateOpen(true);
+      return;
+    }
+
+    if (ignoreNextCreateCloseRef.current || discardCreateOpen) {
+      ignoreNextCreateCloseRef.current = false;
+      return;
+    }
+
+    if (isCreateDirty) {
+      setDiscardCreateOpen(true);
+      return;
+    }
+
+    closeCreateDialog();
   }
 
   function openReceiptDialog(saleId: number) {
@@ -165,7 +202,7 @@ export default function ReceivablesPage() {
     }
 
     setReceiptSaleId(saleId);
-    setReceiptDate(new Date().toISOString().slice(0, 10));
+    setReceiptDate(today);
     setCreateOpen(true);
   }
 
@@ -255,7 +292,7 @@ export default function ReceivablesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Novo recebimento</DialogTitle>
@@ -317,6 +354,18 @@ export default function ReceivablesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DiscardChangesAlert
+        open={discardCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) ignoreNextCreateCloseRef.current = true;
+          setDiscardCreateOpen(open);
+        }}
+        onConfirm={() => {
+          setDiscardCreateOpen(false);
+          closeCreateDialog();
+        }}
+      />
     </div>
   );
 }

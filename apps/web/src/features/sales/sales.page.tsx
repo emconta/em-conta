@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
+import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +34,7 @@ import {
 } from "@web/features/sales/sales.queries";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import type * as React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type SaleDraftItem = {
@@ -53,6 +54,8 @@ export default function SalesPage() {
   const sales = useSales();
   const { isPending, mutateAsync } = useCreateSale();
   const [createOpen, setCreateOpen] = useState(false);
+  const [discardCreateOpen, setDiscardCreateOpen] = useState(false);
+  const ignoreNextCreateCloseRef = useRef(false);
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const saleDetail = useSale(selectedSaleId);
@@ -83,6 +86,20 @@ export default function SalesPage() {
       }, 0),
     [items],
   );
+  const isCreateDirty =
+    paymentTerms !== "cash" ||
+    issueDate !== today ||
+    customerName !== "" ||
+    description !== "" ||
+    cashAccountId !== "" ||
+    items.length !== 1 ||
+    items.some(
+      (item) =>
+        item.productId !== "" ||
+        item.quantity !== "" ||
+        item.unitPrice !== "" ||
+        item.description !== "",
+    );
 
   const columns = useMemo<ColumnDef<SaleListItemDto>[]>(
     () => [
@@ -156,10 +173,41 @@ export default function SalesPage() {
     toast.success(`Venda #${result.value.saleId} criada.`);
     setSelectedSaleId(result.value.saleId);
     setCreateOpen(false);
-    setItems([newDraftItem()]);
+    resetCreateForm();
+    await queryClient.invalidateQueries({ queryKey: listSalesOptions.queryKey });
+  }
+
+  function resetCreateForm() {
+    setPaymentTerms("cash");
+    setIssueDate(today);
     setCustomerName("");
     setDescription("");
-    await queryClient.invalidateQueries({ queryKey: listSalesOptions.queryKey });
+    setCashAccountId("");
+    setItems([newDraftItem()]);
+  }
+
+  function closeCreateDialog() {
+    setCreateOpen(false);
+    resetCreateForm();
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    if (open) {
+      setCreateOpen(true);
+      return;
+    }
+
+    if (ignoreNextCreateCloseRef.current || discardCreateOpen) {
+      ignoreNextCreateCloseRef.current = false;
+      return;
+    }
+
+    if (isCreateDirty) {
+      setDiscardCreateOpen(true);
+      return;
+    }
+
+    closeCreateDialog();
   }
 
   function selectProduct(itemKey: string, productId: string) {
@@ -210,7 +258,7 @@ export default function SalesPage() {
         }
       />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Nova venda</DialogTitle>
@@ -242,6 +290,18 @@ export default function SalesPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <DiscardChangesAlert
+        open={discardCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) ignoreNextCreateCloseRef.current = true;
+          setDiscardCreateOpen(open);
+        }}
+        onConfirm={() => {
+          setDiscardCreateOpen(false);
+          closeCreateDialog();
+        }}
+      />
 
       <Dialog
         open={selectedSaleId !== null}
@@ -411,6 +471,7 @@ function SaleForm({
               <FieldLabel>Qtd.</FieldLabel>
               <QuantityInput
                 aria-label={`Quantidade do item ${index + 1}`}
+                disabled={!item.productId}
                 value={item.quantity}
                 onValueChange={(value) => updateItem(item.key, { quantity: value }, onUpdateItems)}
               />
@@ -420,6 +481,7 @@ function SaleForm({
               <FieldLabel>Preço</FieldLabel>
               <MoneyInput
                 aria-label={`Preço unitário do item ${index + 1}`}
+                disabled={!item.productId}
                 value={item.unitPrice}
                 onValueChange={(value) => updateItem(item.key, { unitPrice: value }, onUpdateItems)}
               />
@@ -427,7 +489,7 @@ function SaleForm({
 
             <Field>
               <FieldLabel>Total</FieldLabel>
-              <Input readOnly value={`R$ ${lineTotal(item)}`} />
+              <Input disabled={!item.productId} readOnly value={`R$ ${lineTotal(item)}`} />
             </Field>
 
             <div className="flex items-end">
@@ -502,8 +564,8 @@ function newDraftItem(): SaleDraftItem {
   return {
     key: crypto.randomUUID(),
     productId: "",
-    quantity: "1.000",
-    unitPrice: "0.00",
+    quantity: "",
+    unitPrice: "",
     description: "",
   };
 }

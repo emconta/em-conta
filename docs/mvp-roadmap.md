@@ -162,7 +162,7 @@ Definition of done:
 
 ### 11. Fix Masked Input Editing
 
-Status: pending
+Status: completed
 
 Goal: make masked currency/number inputs editable without forcing the user to select the entire current value first.
 
