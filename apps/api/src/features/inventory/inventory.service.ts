@@ -184,7 +184,7 @@ export class InventoryService extends Effect.Service<InventoryService>()("Invent
             companyId: input.companyId,
             sourceType: "purchase",
             entryDate: input.date,
-            memo: `Stock intake: ${product.name}`,
+            memo: `Entrada de estoque: ${product.name}`,
             status: "posted",
             lines: [
               { accountId: input.inventoryAccountId, type: "debit", amount },

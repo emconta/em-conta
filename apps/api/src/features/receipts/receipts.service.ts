@@ -83,7 +83,7 @@ export class ReceiptsService extends Effect.Service<ReceiptsService>()("Receipts
           companyId: input.companyId,
           sourceType: "receipt",
           entryDate: input.receiptDate,
-          memo: input.notes ?? "Credit sale receipt",
+          memo: input.notes ?? "Recebimento de venda a prazo",
           status: "posted",
           lines: [
             { accountId: cashAccount.id, type: "debit", amount: centsToMoney(amount) },

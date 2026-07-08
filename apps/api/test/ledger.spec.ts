@@ -151,12 +151,12 @@ describe("ledger DTO builder", () => {
     expect(ledger.rows[1]?.memo).toBe("Lançamento — Detalhe");
   });
 
-  it("falls back to source type when memo and description are empty", () => {
+  it("returns null memo when memo and description are empty", () => {
     const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, [
       makeLine({ id: 1, amount: "100.00", type: "debit" }, { sourceType: "sale" }),
     ]);
 
-    expect(ledger.rows[1]?.memo).toBe("sale");
+    expect(ledger.rows[1]?.memo).toBeNull();
   });
 });
 

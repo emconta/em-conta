@@ -120,7 +120,7 @@ function buildMemo(
 
   if (parts.length > 0) return parts.join(" — ");
 
-  return entry?.sourceType ?? null;
+  return null;
 }
 
 export function updateRunningBalance(

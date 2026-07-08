@@ -139,7 +139,6 @@ export default function JournalPage() {
         { label: "Recebimento", value: "receipt" },
       ],
     },
-
   ];
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -648,7 +647,7 @@ function AccountCombobox({
                         <span className="truncate">{account.name}</span>
                         <span className="truncate text-xs text-muted-foreground">
                           {account.nature === "debit" ? "Natureza devedora" : "Natureza credora"}
-                          {account.type ? ` · ${account.type}` : ""}
+                          {account.typeLabel ? ` · ${account.typeLabel}` : ""}
                         </span>
                       </span>
                     </ComboboxItem>
@@ -710,8 +709,9 @@ function accountCategoryMetadata(category: string) {
 
 function accountSearchLabel(account: AccountDto) {
   const category = accountCategoryMetadata(account.category).label;
+  const nature = account.nature === "debit" ? "Devedora" : "Credora";
 
-  return [account.name, category, account.nature, account.type].filter(Boolean).join(" ");
+  return [account.name, category, nature, account.typeLabel].filter(Boolean).join(" ");
 }
 
 function newDraftLine(): DraftLine {

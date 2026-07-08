@@ -1,5 +1,6 @@
 import type { DatabaseError } from "@api/db/errors/databaseError";
 import type { Account, AccountCategory, AccountInChart, InsertAccount } from "@api/db/schema";
+import { getAccountTypeMetadata } from "@api/features/accounts/accountTypes";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
@@ -101,6 +102,7 @@ export class AccountsService extends Effect.Service<AccountsService>()("Accounts
           id: account.id,
           name: account.name,
           type: account.type,
+          typeLabel: getAccountTypeMetadata(account.type).label,
           description: account.description,
           category: account.category,
           nature: account.nature,
