@@ -3,6 +3,7 @@ import type { ProductDto } from "@dto/products.dto";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { AccountingHelp } from "@web/components/accounting-help";
+import { getLeafCashBankAccounts } from "@web/lib/accounts";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
 import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
@@ -70,9 +71,7 @@ export default function SalesPage() {
   const productList = products.data?.isOk() ? products.data.value : [];
   const accountList = accounts.data?.isOk() ? accounts.data.value : [];
   const saleList = sales.data?.isOk() ? sales.data.value : [];
-  const cashAccounts = accountList.filter(
-    (account) => account.type === "cash" || account.type === "bank_checking",
-  );
+  const cashAccounts = getLeafCashBankAccounts(accountList);
   const selectedSale = saleDetail.data?.isOk() ? saleDetail.data.value : null;
   const filteredSales = saleList.filter(
     (sale) => paymentFilter === "all" || sale.paymentTerms === paymentFilter,

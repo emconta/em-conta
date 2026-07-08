@@ -1,6 +1,7 @@
 import type { ReceivableItemDto } from "@dto/receivables.dto";
 import { useQueryClient } from "@tanstack/react-query";
 import { AccountingHelp } from "@web/components/accounting-help";
+import { getLeafCashBankAccounts } from "@web/lib/accounts";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
 import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
@@ -55,9 +56,7 @@ export default function ReceivablesPage() {
   const receivableList = receivables.data?.isOk() ? receivables.data.value : [];
   const receiptList = receipts.data?.isOk() ? receipts.data.value : [];
   const accountList = accounts.data?.isOk() ? accounts.data.value : [];
-  const cashAccounts = accountList.filter(
-    (account) => account.type === "cash" || account.type === "bank_checking",
-  );
+  const cashAccounts = getLeafCashBankAccounts(accountList);
 
   const filteredReceivables = receivableList.filter((item) => {
     if (statusFilter === "all") return true;

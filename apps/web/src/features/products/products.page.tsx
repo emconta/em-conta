@@ -2,6 +2,7 @@ import type { AccountDto } from "@dto/accounts.dto";
 import type { CreateProductDto, CreateStockIntakeDto, ProductDto } from "@dto/products.dto";
 import { useQueryClient } from "@tanstack/react-query";
 import { AccountingHelp } from "@web/components/accounting-help";
+import { getLeafCashBankAccounts } from "@web/lib/accounts";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
 import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
@@ -69,9 +70,7 @@ export default function ProductsPage() {
 
   const productList = products.data?.isOk() ? products.data.value : [];
   const accountList = accounts.data?.isOk() ? accounts.data.value : [];
-  const paymentAccounts = accountList.filter(
-    (account) => account.type === "cash" || account.type === "bank_checking",
-  );
+  const paymentAccounts = getLeafCashBankAccounts(accountList);
   const filteredProducts = productList.filter((product) => {
     const matchesType = typeFilter === "all" || product.type === typeFilter;
     const matchesInventory =
