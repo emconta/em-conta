@@ -647,7 +647,6 @@ function AccountCombobox({
                         <span className="truncate">{account.name}</span>
                         <span className="truncate text-xs text-muted-foreground">
                           {account.nature === "debit" ? "Natureza devedora" : "Natureza credora"}
-                          {account.typeLabel ? ` · ${account.typeLabel}` : ""}
                         </span>
                       </span>
                     </ComboboxItem>
