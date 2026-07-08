@@ -629,7 +629,7 @@ function AccountCombobox({
         items={groups}
         value={selectedAccount}
         itemToStringLabel={(item: AccountDto | AccountGroup) =>
-          "items" in item ? item.label : accountSearchLabel(item)
+          "items" in item ? item.label : item.name
         }
         onValueChange={(account) => onChange(account ? String(account.id) : "")}
       >
