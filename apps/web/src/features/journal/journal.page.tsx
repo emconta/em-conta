@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@web/components/ui/table";
 import { useAccounts } from "@web/features/accounts/accounts.queries";
+import { getLeafAccounts } from "@web/lib/accounts";
 import {
   listJournalEntriesOptions,
   useCreateManualJournalEntry,
@@ -680,7 +681,7 @@ function AccountCombobox({
 
 function useAccountsList() {
   const accounts = useAccounts();
-  return accounts.data?.isOk() ? accounts.data.value : [];
+  return accounts.data?.isOk() ? getLeafAccounts(accounts.data.value) : [];
 }
 
 function groupAccounts(accounts: AccountDto[]) {

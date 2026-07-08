@@ -23,3 +23,9 @@ export function getLeafCashBankAccounts(accounts: AccountDto[]): AccountDto[] {
 
   return accounts.filter((account) => isLeafCashOrBankAccount(account, parentIds));
 }
+
+export function getLeafAccounts(accounts: AccountDto[]): AccountDto[] {
+  const parentIds = getParentIds(accounts);
+
+  return accounts.filter((account) => !parentIds.has(account.id));
+}
