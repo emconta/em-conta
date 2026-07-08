@@ -175,7 +175,7 @@ export default function JournalPage() {
     const result = await mutateAsync(payload);
 
     if (result.isErr()) {
-      toast.error(journalErrorMessage(result.error.code));
+      toast.error(journalErrorMessage(result.error));
       return;
     }
 
@@ -633,8 +633,12 @@ function sourceLabel(sourceType: JournalEntryListItemDto["sourceType"]) {
   }
 }
 
-function journalErrorMessage(code: string) {
-  switch (code) {
+function journalErrorMessage(error: {
+  accountName?: string | null;
+  code: string;
+  shortfall?: string | null;
+}) {
+  switch (error.code) {
     case "COMPANY_NOT_FOUND":
       return "Finalize o onboarding antes de criar lançamentos.";
     case "EMPTY_LINES":
@@ -645,9 +649,21 @@ function journalErrorMessage(code: string) {
       return "Todos os valores devem ser positivos.";
     case "INVALID_DATE":
       return "Informe uma data válida.";
+    case "INSUFFICIENT_BALANCE":
+      return insufficientBalanceMessage(error);
     case "UNBALANCED_ENTRY":
       return "Total de débitos deve ser igual ao total de créditos.";
     default:
       return "Não foi possível criar o lançamento.";
   }
+}
+
+function insufficientBalanceMessage(error: {
+  accountName?: string | null;
+  shortfall?: string | null;
+}) {
+  const account = error.accountName ?? "conta de caixa/banco";
+  const shortfall = error.shortfall ? ` Faltam R$ ${error.shortfall}.` : "";
+
+  return `Saldo insuficiente em ${account}.${shortfall}`;
 }

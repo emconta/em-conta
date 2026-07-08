@@ -146,7 +146,120 @@ Definition of done:
 - The old "Razão" route is replaced by the new "Plano de Contas" route in the sidebar and page titles.
 - Existing ledger API remains available for the detail modal.
 
-### 10. Demo Seed / Smoke Path
+### 10. Prevent Negative Cash/Bank Balances
+
+Status: completed
+
+Goal: prevent cash or bank accounts from going negative through sales and journal entries.
+
+Definition of done:
+
+- API rejects manual journal entries that credit cash/bank accounts beyond the available posted balance.
+- API rejects cash/bank sales and stock purchases when the payment account would become negative.
+- Validation uses account balances from posted journal lines and stable account keys, not display names.
+- Error messages clearly explain which account has insufficient balance.
+- Focused tests cover accepted transactions with enough balance and rejected transactions with insufficient balance.
+
+### 11. Fix Masked Input Editing
+
+Status: pending
+
+Goal: make masked currency/number inputs editable without forcing the user to select the entire current value first.
+
+Definition of done:
+
+- Currency and numeric masked inputs allow normal cursor positioning, deletion, replacement, and partial edits.
+- Existing form validation and submitted numeric values remain unchanged.
+- Fix is applied consistently to sales, journal entries, stock intake, receipts, payables, and report filters where masks exist.
+- Manual checks cover desktop and mobile typing behavior.
+
+### 12. Root Redirect To Dashboard
+
+Status: pending
+
+Goal: redirect visits to `/` to `/dashboard` so authenticated users land on the main app screen.
+
+Definition of done:
+
+- Navigating to `/` redirects to `/dashboard`.
+- Redirect works on direct browser load and client-side navigation.
+- Auth behavior remains intact for unauthenticated users.
+- Smoke check confirms `/dashboard` still loads normally.
+
+### 13. Dashboard Current Month Net Profit Card
+
+Status: pending
+
+Goal: replace the dashboard current liquidity card with current-month net profit.
+
+Definition of done:
+
+- Dashboard third summary card shows net profit/loss for the current month using DRE logic.
+- Card label and helper text make the period explicit.
+- Existing liquidity report remains reachable outside the dashboard card.
+- Values come from journal lines, not guessed totals.
+- Focused check compares the card value with the DRE result for the same current-month period.
+
+### 14. Accounting Help Hover Cards
+
+Status: pending
+
+Goal: add contextual help so users without accounting experience can understand key system terms.
+
+Definition of done:
+
+- Key accounting terms and actions have information buttons using the shadcn hover card component.
+- Help text is concise, plain-language Portuguese and avoids overwhelming experienced users.
+- Initial coverage includes dashboard cards, DRE, Balance Sheet, ledger/account plan, sales posting, receivables, payables, and journal entries.
+- Hover cards are keyboard accessible and usable on mobile or have an acceptable mobile interaction.
+- Visual treatment fits the existing design system.
+
+### 15. Detailed DRE Report
+
+Status: pending
+
+Goal: make DRE more useful by showing the values that compose each calculated total.
+
+Definition of done:
+
+- DRE report groups rows into meaningful sections such as receita bruta, deduções, receita líquida, custos, despesas, and resultado.
+- Each section shows account-level or category-level detail lines that reconcile to the section total.
+- Report includes amount and percentage-of-revenue columns where meaningful.
+- Existing total revenue, total expenses, and net result remain available and consistent with the detailed view.
+- Empty groups render clearly without misleading zero rows.
+- Focused tests or checks cover section totals and final net result reconciliation.
+
+### 16. Detailed Balance Sheet Report
+
+Status: pending
+
+Goal: make Balance Sheet more useful by listing the account values that compose asset, liability, and equity totals.
+
+Definition of done:
+
+- Balance Sheet report lists accounts under their respective groups for assets, liabilities, and equity.
+- Current/non-current or similar subgrouping is shown when account classification data supports it.
+- Group totals reconcile to the final Assets and Liabilities + Equity totals.
+- Equality check remains visible and uses the same totals shown in the detailed rows.
+- Zero-balance accounts are hidden or clearly handled according to the chosen UX.
+- Focused tests or checks cover account detail totals and the balance equality.
+
+### 17. CSV Report Export
+
+Status: pending
+
+Goal: let users export system-generated reports as `.csv` files.
+
+Definition of done:
+
+- DRE, Balance Sheet, account ledger, and other implemented reports expose CSV export actions.
+- CSV exports respect the same filters and periods currently shown on screen.
+- CSV files include clear headers, formatted dates, and raw numeric values suitable for spreadsheets.
+- Download filenames identify report type and period/date.
+- Export works without exposing data from other companies.
+- Focused checks cover at least DRE, Balance Sheet, and ledger exports.
+
+### 18. Demo Seed / Smoke Path
 
 Status: pending
 

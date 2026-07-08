@@ -24,7 +24,8 @@ export const ProductsController = new Hono<AppVariables & AuthVariables>()
         Effect.map((product) => c.json(product, 201)),
         Effect.catchIf(
           (err) => err instanceof ProductsServiceError,
-          ({ code }) => Effect.succeed(c.json({ code }, 400)),
+          ({ accountId, accountName, code, shortfall }) =>
+            Effect.succeed(c.json({ accountId, accountName, code, shortfall }, 400)),
         ),
       ),
     ),
@@ -46,7 +47,13 @@ export const ProductsController = new Hono<AppVariables & AuthVariables>()
         Effect.map((stockIntake) => c.json(stockIntake, 201)),
         Effect.catchIf(
           (err) => err instanceof ProductsServiceError,
-          ({ code }) => Effect.succeed(c.json({ code }, code === "PRODUCT_NOT_FOUND" ? 404 : 400)),
+          ({ accountId, accountName, code, shortfall }) =>
+            Effect.succeed(
+              c.json(
+                { accountId, accountName, code, shortfall },
+                code === "PRODUCT_NOT_FOUND" ? 404 : 400,
+              ),
+            ),
         ),
       ),
     );

@@ -88,7 +88,12 @@ export class ProductsService extends Effect.Service<ProductsService>()("Products
           .pipe(
             Effect.mapError((err) =>
               err instanceof InventoryServiceError
-                ? new ProductsServiceError({ code: err.code })
+                ? new ProductsServiceError({
+                    accountId: err.accountId,
+                    accountName: err.accountName,
+                    code: err.code,
+                    shortfall: err.shortfall,
+                  })
                 : err,
             ),
           );
@@ -179,8 +184,11 @@ function parseDate(value: string) {
 }
 
 export class ProductsServiceError extends Data.TaggedError("ProductsServiceError")<{
+  readonly accountId?: number;
+  readonly accountName?: string;
   readonly code:
     | "COMPANY_NOT_FOUND"
+    | "INSUFFICIENT_BALANCE"
     | "INVALID_AMOUNT"
     | "INVALID_DATE"
     | "INVALID_PAYMENT_ACCOUNT"
@@ -189,4 +197,5 @@ export class ProductsServiceError extends Data.TaggedError("ProductsServiceError
     | "MISSING_ACCOUNT"
     | "PRODUCT_NOT_FOUND"
     | "SERVICE_CANNOT_TRACK_STOCK";
+  readonly shortfall?: string;
 }> {}

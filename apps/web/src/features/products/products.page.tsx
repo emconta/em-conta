@@ -154,7 +154,7 @@ export default function ProductsPage() {
     const result = await mutateAsync(form);
 
     if (result.isErr()) {
-      toast.error(productErrorMessage(result.error.code));
+      toast.error(productErrorMessage(result.error));
       return;
     }
 
@@ -185,7 +185,7 @@ export default function ProductsPage() {
     });
 
     if (result.isErr()) {
-      toast.error(productErrorMessage(result.error.code));
+      toast.error(productErrorMessage(result.error));
       return;
     }
 
@@ -454,12 +454,18 @@ function emptyStockIntake(): StockIntakeDraft {
   };
 }
 
-function productErrorMessage(code: string) {
-  switch (code) {
+function productErrorMessage(error: {
+  accountName?: string | null;
+  code: string;
+  shortfall?: string | null;
+}) {
+  switch (error.code) {
     case "SERVICE_CANNOT_TRACK_STOCK":
       return "Serviços não podem controlar estoque.";
     case "COMPANY_NOT_FOUND":
       return "Finalize o onboarding antes de cadastrar itens.";
+    case "INSUFFICIENT_BALANCE":
+      return insufficientBalanceMessage(error);
     case "INVALID_AMOUNT":
       return "Informe um custo unitário positivo.";
     case "INVALID_DATE":
@@ -477,4 +483,14 @@ function productErrorMessage(code: string) {
     default:
       return "Não foi possível cadastrar o item.";
   }
+}
+
+function insufficientBalanceMessage(error: {
+  accountName?: string | null;
+  shortfall?: string | null;
+}) {
+  const account = error.accountName ?? "conta de caixa/banco";
+  const shortfall = error.shortfall ? ` Faltam R$ ${error.shortfall}.` : "";
+
+  return `Saldo insuficiente em ${account}.${shortfall}`;
 }

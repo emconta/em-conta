@@ -16,7 +16,8 @@ export const JournalController = new Hono<AppVariables & AuthVariables>()
         Effect.map((entry) => c.json(entry, 201)),
         Effect.catchIf(
           (err) => err instanceof CreateJournalEntryError,
-          ({ code }) => Effect.succeed(c.json({ code }, 400)),
+          ({ accountId, accountName, code, shortfall }) =>
+            Effect.succeed(c.json({ accountId, accountName, code, shortfall }, 400)),
         ),
       ),
     ),

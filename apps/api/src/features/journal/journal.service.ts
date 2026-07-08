@@ -7,6 +7,7 @@ import type {
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import JournalRepo from "@api/features/journal/journal.repo";
+import { BalanceGuardService } from "@api/features/balance/balanceGuard.service";
 import type {
   CreateManualJournalEntryDto,
   JournalEntryDetailDto,
@@ -22,6 +23,7 @@ export type CreateJournalEntryInput = InsertJournalEntry & {
 export class JournalService extends Effect.Service<JournalService>()("JournalService", {
   effect: Effect.gen(function* () {
     const accountsRepo = yield* AccountsRepo;
+    const balanceGuard = yield* BalanceGuardService;
     const companiesRepo = yield* CompaniesRepo;
     const journalRepo = yield* JournalRepo;
 
@@ -47,6 +49,27 @@ export class JournalService extends Effect.Service<JournalService>()("JournalSer
         if (input.lines.some((line) => !companyAccountIds.has(line.accountId))) {
           return yield* Effect.fail(new CreateJournalEntryError({ code: "INVALID_ACCOUNT" }));
         }
+
+        const accountsById = new Map(companyAccounts.map((a) => [a.id, a]));
+
+        yield* balanceGuard
+          .checkCashBankBalance({
+            companyId: input.companyId,
+            lines: input.lines,
+            accountsById,
+          })
+          .pipe(
+            Effect.catchTag("InsufficientBalanceError", (err) =>
+              Effect.fail(
+                new CreateJournalEntryError({
+                  accountId: err.accountId,
+                  accountName: err.accountName,
+                  code: "INSUFFICIENT_BALANCE",
+                  shortfall: err.shortfall,
+                }),
+              ),
+            ),
+          );
 
         const { lines, ...entry } = input;
 
@@ -309,11 +332,15 @@ export class ReadJournalEntryError extends Data.TaggedError("ReadJournalEntryErr
 }> {}
 
 export class CreateJournalEntryError extends Data.TaggedError("CreateJournalEntryError")<{
+  readonly accountId?: number;
+  readonly accountName?: string;
   readonly code:
     | "COMPANY_NOT_FOUND"
     | "EMPTY_LINES"
+    | "INSUFFICIENT_BALANCE"
     | "INVALID_ACCOUNT"
     | "INVALID_AMOUNT"
     | "INVALID_DATE"
     | "UNBALANCED_ENTRY";
+  readonly shortfall?: string;
 }> {}

@@ -1,4 +1,5 @@
 import type { InsertStockMovement } from "@api/db/schema";
+import { BalanceGuardService } from "@api/features/balance/balanceGuard.service";
 import StockMovementsRepo from "@api/features/inventory/stockMovements.repo";
 import ProductsRepo from "@api/features/products/products.repo";
 import { Data, Effect } from "effect";
@@ -29,6 +30,7 @@ export type CreateStockIntakeInput = {
 
 export class InventoryService extends Effect.Service<InventoryService>()("InventoryService", {
   effect: Effect.gen(function* () {
+    const balanceGuard = yield* BalanceGuardService;
     const productsRepo = yield* ProductsRepo;
     const stockMovementsRepo = yield* StockMovementsRepo;
 
@@ -148,6 +150,24 @@ export class InventoryService extends Effect.Service<InventoryService>()("Invent
         }
 
         const amount = centsToMoney(totalCost);
+
+        yield* balanceGuard
+          .checkCashBankBalance({
+            companyId: input.companyId,
+            lines: [{ accountId: input.paymentAccountId, type: "credit", amount }],
+          })
+          .pipe(
+            Effect.catchTag("InsufficientBalanceError", (err) =>
+              Effect.fail(
+                new InventoryServiceError({
+                  accountId: err.accountId,
+                  accountName: err.accountName,
+                  code: "INSUFFICIENT_BALANCE",
+                  shortfall: err.shortfall,
+                }),
+              ),
+            ),
+          );
 
         const posted = yield* stockMovementsRepo.createStockIntake({
           movement: {
@@ -282,11 +302,15 @@ function divideRound(numerator: bigint, denominator: bigint) {
 }
 
 export class InventoryServiceError extends Data.TaggedError("InventoryServiceError")<{
+  readonly accountId?: number;
+  readonly accountName?: string;
   readonly code:
+    | "INSUFFICIENT_BALANCE"
     | "INVALID_QUANTITY"
     | "INVALID_AMOUNT"
     | "INVALID_STOCK_MOVEMENT"
     | "INVENTORY_NOT_TRACKED"
     | "NEGATIVE_STOCK"
     | "PRODUCT_NOT_FOUND";
+  readonly shortfall?: string;
 }> {}

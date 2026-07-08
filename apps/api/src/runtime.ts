@@ -3,6 +3,7 @@ import Env from "@api/env";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import { AccountsService } from "@api/features/accounts/accounts.service";
 import AccountsChartsRepo from "@api/features/accountsCharts/accountsCharts.repo";
+import { BalanceGuardService } from "@api/features/balance/balanceGuard.service";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import { DashboardService } from "@api/features/dashboard/dashboard.service";
 import { InventoryService } from "@api/features/inventory/inventory.service";
@@ -46,19 +47,23 @@ export function makeRuntime(env: Cloudflare.Env) {
     Layer.mergeAll(noDepsLayer, baseLayer),
   );
 
+  const balanceGuardLayer = BalanceGuardService.Default;
+  const inventoryServiceLayer = Layer.provide(InventoryService.Default, balanceGuardLayer);
+
   const serviceLayer = Layer.provide(
     Layer.mergeAll(
       Layer.provide(OnboardingService.Default, AccountsService.Default),
       AccountsService.Default,
+      balanceGuardLayer,
       DashboardService.Default,
-      Layer.provide(ProductsService.Default, InventoryService.Default),
-      JournalService.Default,
+      Layer.provide(ProductsService.Default, inventoryServiceLayer),
+      Layer.provide(JournalService.Default, balanceGuardLayer),
       LedgerService.Default,
-      InventoryService.Default,
+      inventoryServiceLayer,
       ReceivablesService.Default,
       ReceiptsService.Default,
       ReportsService.Default,
-      Layer.provide(SalesService.Default, InventoryService.Default),
+      Layer.provide(SalesService.Default, inventoryServiceLayer),
     ),
     Layer.mergeAll(repoLayer, noDepsLayer, baseLayer),
   );
