@@ -364,7 +364,7 @@ export default function AccountsPage() {
           if (!open) setSelectedAccountId(null);
         }}
       >
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-5xl min-w-0">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <DialogTitle>
@@ -403,7 +403,7 @@ function LedgerDetail({
   if (!data) return <p className="text-sm text-muted-foreground">Nenhum movimento encontrado.</p>;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="rounded-xl bg-muted p-3">
         <strong className="font-medium">{data.accountName}</strong>
         <p className="text-sm text-muted-foreground">
@@ -413,45 +413,48 @@ function LedgerDetail({
       </div>
 
       <div className="overflow-hidden rounded-xl border">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/70 hover:bg-muted/70">
-                <TableHead className="px-4 py-3">Data</TableHead>
-                <TableHead className="px-4 py-3">Histórico</TableHead>
-                <TableHead className="px-4 py-3">Origem</TableHead>
-                <TableHead className="px-4 py-3 text-right">Débito</TableHead>
-                <TableHead className="px-4 py-3 text-right">Crédito</TableHead>
-                <TableHead className="px-4 py-3 text-right">Saldo</TableHead>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/70 hover:bg-muted/70">
+              <TableHead className="px-4 py-3">Data</TableHead>
+              <TableHead className="px-4 py-3">Histórico</TableHead>
+              <TableHead className="px-4 py-3">Origem</TableHead>
+              <TableHead className="px-4 py-3 text-right">Débito</TableHead>
+              <TableHead className="px-4 py-3 text-right">Crédito</TableHead>
+              <TableHead className="px-4 py-3 text-right">Saldo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.rows.length === 0 ? (
+              <TableRow>
+                <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={6}>
+                  Nenhum movimento encontrado para esta conta.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.rows.length === 0 ? (
-                <TableRow>
-                  <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={6}>
-                    Nenhum movimento encontrado para esta conta.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-              {data.rows.map((row, index) => (
-                <TableRow key={row.entryId ?? `ledger-row-${index}`}>
-                  <TableCell className="px-4 py-3">
-                    {row.entryDate ? new Date(row.entryDate).toLocaleDateString("pt-BR") : "—"}
-                  </TableCell>
-                  <TableCell className="px-4 py-3">{row.memo ?? "—"}</TableCell>
-                  <TableCell className="px-4 py-3">{sourceLabel(row.sourceType)}</TableCell>
-                  <TableCell className="px-4 py-3 text-right">
-                    {row.debit !== "0.00" ? formatMoney(row.debit) : "—"}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-right">
-                    {row.credit !== "0.00" ? formatMoney(row.credit) : "—"}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-right">{formatMoney(row.balance)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ) : null}
+            {data.rows.map((row, index) => (
+              <TableRow key={row.entryId ?? `ledger-row-${index}`}>
+                <TableCell className="px-4 py-3">
+                  {row.entryDate ? new Date(row.entryDate).toLocaleDateString("pt-BR") : "—"}
+                </TableCell>
+                <TableCell
+                  className="max-w-[200px] truncate px-4 py-3"
+                  title={row.memo ?? undefined}
+                >
+                  {row.memo ?? "—"}
+                </TableCell>
+                <TableCell className="px-4 py-3">{sourceLabel(row.sourceType)}</TableCell>
+                <TableCell className="px-4 py-3 text-right">
+                  {row.debit !== "0.00" ? formatMoney(row.debit) : "—"}
+                </TableCell>
+                <TableCell className="px-4 py-3 text-right">
+                  {row.credit !== "0.00" ? formatMoney(row.credit) : "—"}
+                </TableCell>
+                <TableCell className="px-4 py-3 text-right">{formatMoney(row.balance)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
