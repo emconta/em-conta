@@ -1,4 +1,10 @@
 import type { AccountCategory } from "@api/db/schema";
+import {
+  ACCOUNT_TYPE_METADATA,
+  type AccountDreGroup,
+  type AccountTerm,
+  type AccountType,
+} from "@api/features/accounts/accountTypes";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import type { ReportLineWithAccount } from "@api/features/reports/reports.repo";
 import ReportsRepo from "@api/features/reports/reports.repo";
@@ -12,6 +18,16 @@ import type {
   DreSectionItemDto,
 } from "@dto/reports.dto";
 import { Data, Effect } from "effect";
+
+function getAccountTypeMetadata(type: AccountType) {
+  const metadata = ACCOUNT_TYPE_METADATA[type];
+
+  if (!metadata) {
+    throw new Error(`Unknown account type: ${type}`);
+  }
+
+  return metadata;
+}
 
 export class ReportsService extends Effect.Service<ReportsService>()("ReportsService", {
   effect: Effect.gen(function* () {
@@ -178,7 +194,12 @@ export function buildDreReport(
 ): DreReportDto {
   const accountTotals = new Map<
     number,
-    { accountName: string; accountKey: string | null; category: AccountCategory; netAmount: bigint }
+    {
+      accountName: string;
+      accountType: AccountType;
+      dreGroup: AccountDreGroup;
+      netAmount: bigint;
+    }
   >();
 
   for (const { line, account } of rows) {
@@ -194,6 +215,7 @@ export function buildDreReport(
           ? 1n
           : -1n;
     const delta = signedDelta * cents;
+    const metadata = getAccountTypeMetadata(account.type);
 
     const existing = accountTotals.get(account.id);
 
@@ -202,8 +224,8 @@ export function buildDreReport(
     } else {
       accountTotals.set(account.id, {
         accountName: account.name,
-        accountKey: account.key,
-        category: account.category,
+        accountType: account.type,
+        dreGroup: metadata.dreGroup,
         netAmount: delta,
       });
     }
@@ -219,15 +241,15 @@ export function buildDreReport(
   let totalCosts = 0n;
   let totalOperationalExpenses = 0n;
 
-  for (const [accountId, { accountKey, accountName, category, netAmount }] of accountTotals) {
+  for (const [accountId, { accountType, accountName, dreGroup, netAmount }] of accountTotals) {
     const item = {
       accountId,
       accountName,
-      accountKey,
+      accountType,
       amount: moneyFromCents(netAmount),
     };
 
-    if (category === "revenue") {
+    if (dreGroup === "revenue") {
       totalRevenue += netAmount;
       revenueBreakdown.push(item);
       grossRevenueItems.push({ ...item, percentOfRevenue: null });
@@ -235,7 +257,7 @@ export function buildDreReport(
       totalExpenses += netAmount;
       expenseBreakdown.push(item);
 
-      if (accountKey === "cogs") {
+      if (dreGroup === "cogs") {
         totalCosts += netAmount;
         costItems.push({ ...item, percentOfRevenue: null });
       } else {
@@ -355,6 +377,10 @@ export function buildCurrentLiquidityReport({
   let currentLiabilities = 0n;
 
   for (const { line, account } of rows) {
+    const metadata = getAccountTypeMetadata(account.type);
+
+    if (metadata.term !== "current") continue;
+
     const cents = moneyToCents(line.amount);
     const signedDelta =
       account.nature === "debit"
@@ -406,7 +432,13 @@ export function buildBalanceSheetReport(
 ): BalanceSheetReportDto {
   const accountBalances = new Map<
     number,
-    { accountName: string; accountKey: string | null; category: AccountCategory; balance: bigint }
+    {
+      accountName: string;
+      accountType: AccountType;
+      term: AccountTerm;
+      category: AccountCategory;
+      balance: bigint;
+    }
   >();
 
   for (const { line, account } of balanceSheetRows) {
@@ -427,6 +459,7 @@ export function buildBalanceSheetReport(
           ? 1n
           : -1n;
     const delta = signedDelta * cents;
+    const metadata = getAccountTypeMetadata(account.type);
 
     const existing = accountBalances.get(account.id);
 
@@ -435,7 +468,8 @@ export function buildBalanceSheetReport(
     } else {
       accountBalances.set(account.id, {
         accountName: account.name,
-        accountKey: account.key,
+        accountType: account.type,
+        term: metadata.term,
         category: account.category,
         balance: delta,
       });
@@ -452,7 +486,7 @@ export function buildBalanceSheetReport(
   const resultadoItem = {
     accountId: null,
     accountName: "Resultado do período",
-    accountKey: null,
+    accountType: "",
     amount: dre.netResult,
   };
 
@@ -464,6 +498,7 @@ export function buildBalanceSheetReport(
   const equity: BalanceSheetGroupDto = {
     label: "Patrimônio líquido",
     items: equityItems,
+    subgroups: [],
     total: moneyFromCents(equityTotal),
   };
 
@@ -476,8 +511,18 @@ export function buildBalanceSheetReport(
       dateFrom: period.dateFrom.toISOString().slice(0, 10),
       dateTo: period.dateTo.toISOString().slice(0, 10),
     },
-    assets: { items: assets.items, label: assets.label, total: assets.total },
-    liabilities: { items: liabilities.items, label: liabilities.label, total: liabilities.total },
+    assets: {
+      items: assets.items,
+      label: assets.label,
+      subgroups: assets.subgroups,
+      total: assets.total,
+    },
+    liabilities: {
+      items: liabilities.items,
+      label: liabilities.label,
+      subgroups: liabilities.subgroups,
+      total: liabilities.total,
+    },
     equity,
     totalLiabilitiesAndEquity: moneyFromCents(totalLiabilitiesAndEquity),
     isBalanced,
@@ -488,31 +533,72 @@ function buildGroup(
   label: string,
   accountBalances: Map<
     number,
-    { accountName: string; accountKey: string | null; category: AccountCategory; balance: bigint }
+    {
+      accountName: string;
+      accountType: AccountType;
+      term: AccountTerm;
+      category: AccountCategory;
+      balance: bigint;
+    }
   >,
   category: AccountCategory,
 ) {
+  const currentItems = [];
+  const nonCurrentItems = [];
+  let currentTotalCents = 0n;
+  let nonCurrentTotalCents = 0n;
   let totalCents = 0n;
   const items = [];
 
   for (const [
     accountId,
-    { accountKey, accountName, category: accountCategory, balance },
+    { accountName, accountType, term, category: accountCategory, balance },
   ] of accountBalances) {
     if (accountCategory !== category || balance === 0n) continue;
 
-    totalCents += balance;
-    items.push({
+    const item = {
       accountId,
       accountName,
-      accountKey,
+      accountType,
       amount: moneyFromCents(balance),
-    });
+    };
+
+    totalCents += balance;
+    items.push(item);
+
+    if (category === "assets" || category === "liabilities") {
+      const subgroup = term === "current" ? "current" : "non_current";
+
+      if (subgroup === "current") {
+        currentTotalCents += balance;
+        currentItems.push(item);
+      } else {
+        nonCurrentTotalCents += balance;
+        nonCurrentItems.push(item);
+      }
+    }
   }
 
   items.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+  currentItems.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
+  nonCurrentItems.sort((a, b) => a.accountName.localeCompare(b.accountName, "pt-BR"));
 
-  return { items, label, total: moneyFromCents(totalCents), totalCents };
+  const subgroups = [
+    {
+      key: "current",
+      label: "Circulante",
+      items: currentItems,
+      total: moneyFromCents(currentTotalCents),
+    },
+    {
+      key: "non_current",
+      label: "Não circulante",
+      items: nonCurrentItems,
+      total: moneyFromCents(nonCurrentTotalCents),
+    },
+  ];
+
+  return { items, label, subgroups, total: moneyFromCents(totalCents), totalCents };
 }
 
 export function moneyToCents(amount: string) {

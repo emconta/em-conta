@@ -138,11 +138,17 @@ function BalanceSheetGroupCard({
     items: {
       accountId: number | null;
       accountName: string;
-      accountKey: string | null;
+      accountType: string;
       amount: string;
     }[];
     label: string;
     total: string;
+    subgroups: {
+      key: string;
+      label: string;
+      items: { accountId: number | null; accountName: string; amount: string }[];
+      total: string;
+    }[];
   };
 }) {
   return (
@@ -150,8 +156,37 @@ function BalanceSheetGroupCard({
       <CardHeader>
         <CardTitle className="text-base">{group.label}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {group.items.length > 0 ? (
+      <CardContent className="flex flex-col gap-4">
+        {group.subgroups.length > 0 &&
+        group.subgroups.some((subgroup) => subgroup.items.length > 0) ? (
+          <div className="flex flex-col gap-4">
+            {group.subgroups.map(
+              (subgroup) =>
+                subgroup.items.length > 0 && (
+                  <div key={subgroup.key}>
+                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">
+                      {subgroup.label}
+                    </h4>
+                    <ul className="flex flex-col gap-2">
+                      {subgroup.items.map((item) => (
+                        <li
+                          key={item.accountId ?? item.accountName}
+                          className="flex justify-between border-b py-2 text-sm"
+                        >
+                          <span>{item.accountName}</span>
+                          <span className="tabular-nums">R$ {formatMoney(item.amount)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2 flex justify-between text-sm font-medium">
+                      <span>Subtotal {subgroup.label.toLowerCase()}</span>
+                      <span className="tabular-nums">R$ {formatMoney(subgroup.total)}</span>
+                    </div>
+                  </div>
+                ),
+            )}
+          </div>
+        ) : group.items.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {group.items.map((item) => (
               <li

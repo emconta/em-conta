@@ -1,8 +1,8 @@
 import { computeCashBankCredits } from "@api/features/balance/balanceGuard.service";
 import { describe, expect, it } from "vitest";
 
-function makeAccount(id: number, key: string) {
-  return { id, key };
+function makeAccount(id: number, type: string) {
+  return { id, type };
 }
 
 describe("computeCashBankCredits", () => {
@@ -52,7 +52,7 @@ describe("computeCashBankCredits", () => {
   });
 
   it("ignores unknown account IDs", () => {
-    const accountsById = new Map<number, { id: number; key: string }>();
+    const accountsById = new Map<number, { id: number; type: string }>();
 
     const result = computeCashBankCredits(
       [{ accountId: 99, type: "credit", amount: "100.00" }],

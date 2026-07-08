@@ -1,21 +1,22 @@
 import Database from "@api/db/database";
-import { type Account, type AccountKey, accounts, type InsertAccount } from "@api/db/schema";
+import { type Account, accounts, type InsertAccount } from "@api/db/schema";
+import type { AccountType } from "@api/features/accounts/accountTypes";
 import { Effect, Array as ErrArray } from "effect";
 
 export default class AccountsRepo extends Effect.Service<AccountsRepo>()("AccountsRepo", {
   effect: Effect.gen(function* () {
     const db = yield* Database;
 
-    function getByCompanyAndKey({
+    function getByCompanyAndType({
       companyId,
-      key,
-    }: Pick<Account, "companyId"> & { key: AccountKey }) {
+      type,
+    }: Pick<Account, "companyId"> & { type: AccountType }) {
       return db.execute((q) =>
         q.query.accounts.findFirst({
           where(fields, operators) {
             return operators.and(
               operators.eq(fields.companyId, companyId),
-              operators.eq(fields.key, key),
+              operators.eq(fields.type, type),
             );
           },
         }),
@@ -38,6 +39,6 @@ export default class AccountsRepo extends Effect.Service<AccountsRepo>()("Accoun
         .pipe(Effect.map(ErrArray.head));
     }
 
-    return { getByCompanyAndKey, insert, listByCompany };
+    return { getByCompanyAndType, insert, listByCompany };
   }),
 }) {}

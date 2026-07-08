@@ -52,7 +52,7 @@ export class LedgerServiceError extends Data.TaggedError("LedgerServiceError")<{
 }> {}
 
 export function buildLedgerDto(
-  account: Pick<Account, "id" | "name" | "key" | "nature">,
+  account: Pick<Account, "id" | "name" | "type" | "nature">,
   rowsWithEntry: LedgerLineWithEntry[],
 ): AccountLedgerDto {
   const openingBalance = moneyFromCents(0n);
@@ -105,7 +105,7 @@ export function buildLedgerDto(
   return {
     accountId: account.id,
     accountName: account.name,
-    accountKey: account.key ?? null,
+    accountType: account.type,
     accountNature: nature,
     openingBalance,
     rows: [openingRow, ...movementRows],

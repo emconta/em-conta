@@ -261,7 +261,7 @@ Definition of done:
 
 ### 17. Detailed Balance Sheet Report
 
-Status: pending
+Status: completed
 
 Goal: make Balance Sheet more useful by listing the account values that compose asset, liability, and equity totals.
 
@@ -274,7 +274,25 @@ Definition of done:
 - Zero-balance accounts are hidden or clearly handled according to the chosen UX.
 - Focused tests or checks cover account detail totals and the balance equality.
 
-### 18. CSV Report Export
+### 18. Account Types and Chart of Accounts Refactor
+
+Status: completed
+
+Goal: replace loose account-key classification with predefined account types so reports classify accounts consistently and the chart of accounts reflects the structure required for the balance sheet and DRE.
+
+Definition of done:
+
+- `accounts` table has a required `type` column and no `key` column.
+- A central `ACCOUNT_TYPE_METADATA` catalog defines category, nature, current/non-current term, DRE group, and Portuguese label for every account type.
+- The chart-of-accounts seed and onboarding copy `type` into each company account.
+- Balance Sheet classifies assets and liabilities into Circulante / Não circulante using the type metadata.
+- DRE groups accounts into Receita bruta, Custos, and Despesas operacionais using the type metadata.
+- Sales, inventory, receipts, balance guard, and dashboard resolve required accounts by `type` instead of `key`.
+- Frontend account plan page shows each account's type and term (Circulante / Não circulante / N/A).
+- Tests cover type-based classification for current/non-current assets and liabilities and DRE grouping.
+- A follow-up roadmap slice is added for the Endividamento (indebtedness) indicator.
+
+### 19. CSV Report Export
 
 Status: pending
 
@@ -289,7 +307,7 @@ Definition of done:
 - Export works without exposing data from other companies.
 - Focused checks cover at least DRE, Balance Sheet, and ledger exports.
 
-### 19. Demo Seed / Smoke Path
+### 20. Demo Seed / Smoke Path
 
 Status: pending
 

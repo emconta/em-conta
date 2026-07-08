@@ -10,12 +10,14 @@ function makeLine(
   account: {
     category: AccountCategory;
     id: number;
-    key?: string;
     name: string;
     nature?: AccountNature;
+    type?: string;
   },
   line: { amount: string; type: "debit" | "credit" },
 ) {
+  const accountType = account.type ?? defaultAccountType(account.category);
+
   return {
     line: {
       id: 1,
@@ -40,7 +42,7 @@ function makeLine(
       id: account.id,
       companyId: 1,
       name: account.name,
-      key: account.key ?? null,
+      type: accountType,
       category: account.category,
       nature: account.nature ?? defaultNature(account.category),
       description: null,
@@ -49,6 +51,21 @@ function makeLine(
       updatedAt: new Date(),
     },
   };
+}
+
+function defaultAccountType(category: AccountCategory): string {
+  switch (category) {
+    case "assets":
+      return "fixed_assets";
+    case "liabilities":
+      return "accounts_payable";
+    case "equity":
+      return "capital";
+    case "revenue":
+      return "sales_revenue";
+    case "expenses":
+      return "operating_expenses";
+  }
 }
 
 function buildSummary(
@@ -77,34 +94,34 @@ describe("Dashboard summary builder", () => {
   it("calculates demo dashboard after purchase, sale, CMV and expense", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "4000.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "10000.00", type: "debit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "credit" },
       ),
     ];
 
     const dreRows = [
       makeLine(
-        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { id: 20, name: "Receita de vendas", category: "revenue", type: "sales_revenue" },
         { amount: "10000.00", type: "credit" },
       ),
       makeLine(
-        { id: 30, name: "CMV", category: "expenses", key: "cogs" },
+        { id: 30, name: "CMV", category: "expenses", type: "cogs" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
@@ -128,7 +145,7 @@ describe("Dashboard summary builder", () => {
   it("returns a signed net result from DRE totals for the dashboard card", () => {
     const dreRows = [
       makeLine(
-        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { id: 20, name: "Receita de vendas", category: "revenue", type: "sales_revenue" },
         { amount: "2000.00", type: "credit" },
       ),
       makeLine(
@@ -150,11 +167,11 @@ describe("Dashboard summary builder", () => {
   it("includes bank_checking in cash and bank balance", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 11, name: "Banco", category: "assets", key: "bank_checking" },
+        { id: 11, name: "Banco", category: "assets", type: "bank_checking" },
         { amount: "3000.00", type: "debit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "2000.00", type: "debit" },
       ),
     ];
@@ -167,15 +184,15 @@ describe("Dashboard summary builder", () => {
   it("ignores inventory and receivables in cash and bank", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "debit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
-        { id: 60, name: "Clientes", category: "assets", key: "accounts_receivable" },
+        { id: 60, name: "Clientes", category: "assets", type: "accounts_receivable" },
         { amount: "2000.00", type: "debit" },
       ),
     ];
@@ -188,11 +205,11 @@ describe("Dashboard summary builder", () => {
   it("calculates liquidity when liabilities exist", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "5000.00", type: "debit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
@@ -210,11 +227,11 @@ describe("Dashboard summary builder", () => {
   it("allows negative cash and bank balance", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "debit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "2500.00", type: "credit" },
       ),
     ];

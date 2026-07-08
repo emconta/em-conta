@@ -8,14 +8,14 @@ export const DrePeriodDto = v.object({
 export const DreBreakdownItemDto = v.object({
   accountId: v.number(),
   accountName: v.string(),
-  accountKey: v.nullable(v.string()),
+  accountType: v.string(),
   amount: v.string(),
 });
 
 export const DreSectionItemDto = v.object({
   accountId: v.number(),
   accountName: v.string(),
-  accountKey: v.nullable(v.string()),
+  accountType: v.string(),
   amount: v.string(),
   percentOfRevenue: v.nullable(v.string()),
 });
@@ -51,14 +51,22 @@ export const DreQueryDto = v.object({
 export const BalanceSheetAccountDto = v.object({
   accountId: v.nullable(v.number()),
   accountName: v.string(),
-  accountKey: v.nullable(v.string()),
+  accountType: v.string(),
   amount: v.string(),
+});
+
+export const BalanceSheetSubgroupDto = v.object({
+  key: v.string(),
+  label: v.string(),
+  items: v.array(BalanceSheetAccountDto),
+  total: v.string(),
 });
 
 export const BalanceSheetGroupDto = v.object({
   label: v.string(),
   items: v.array(BalanceSheetAccountDto),
   total: v.string(),
+  subgroups: v.array(BalanceSheetSubgroupDto),
 });
 
 export const BalanceSheetReportDto = v.object({
@@ -96,6 +104,7 @@ export type DreSectionDto = v.InferInput<typeof DreSectionDto>;
 export type DreReportDto = v.InferInput<typeof DreReportDto>;
 export type DreQueryDto = v.InferInput<typeof DreQueryDto>;
 export type BalanceSheetAccountDto = v.InferInput<typeof BalanceSheetAccountDto>;
+export type BalanceSheetSubgroupDto = v.InferInput<typeof BalanceSheetSubgroupDto>;
 export type BalanceSheetGroupDto = v.InferInput<typeof BalanceSheetGroupDto>;
 export type BalanceSheetReportDto = v.InferInput<typeof BalanceSheetReportDto>;
 export type BalanceSheetQueryDto = v.InferInput<typeof BalanceSheetQueryDto>;

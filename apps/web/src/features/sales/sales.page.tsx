@@ -71,7 +71,7 @@ export default function SalesPage() {
   const accountList = accounts.data?.isOk() ? accounts.data.value : [];
   const saleList = sales.data?.isOk() ? sales.data.value : [];
   const cashAccounts = accountList.filter(
-    (account) => account.key === "cash" || account.key === "bank_checking",
+    (account) => account.type === "cash" || account.type === "bank_checking",
   );
   const selectedSale = saleDetail.data?.isOk() ? saleDetail.data.value : null;
   const filteredSales = saleList.filter(

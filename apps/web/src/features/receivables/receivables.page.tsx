@@ -56,7 +56,7 @@ export default function ReceivablesPage() {
   const receiptList = receipts.data?.isOk() ? receipts.data.value : [];
   const accountList = accounts.data?.isOk() ? accounts.data.value : [];
   const cashAccounts = accountList.filter(
-    (account) => account.key === "cash" || account.key === "bank_checking",
+    (account) => account.type === "cash" || account.type === "bank_checking",
   );
 
   const filteredReceivables = receivableList.filter((item) => {

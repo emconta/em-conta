@@ -14,7 +14,7 @@ export const AccountLedgerRowDto = v.object({
 export const AccountLedgerDto = v.object({
   accountId: v.number(),
   accountName: v.string(),
-  accountKey: v.nullable(v.string()),
+  accountType: v.string(),
   accountNature: v.picklist(["debit", "credit"]),
   openingBalance: v.string(),
   rows: v.array(AccountLedgerRowDto),

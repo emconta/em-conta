@@ -1,14 +1,13 @@
-import type { Account, AccountKey, InsertJournalEntryLine } from "@api/db/schema";
+import type { Account, InsertJournalEntryLine } from "@api/db/schema";
+import { isCashOrBankType } from "@api/features/accounts/accountTypes";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import LedgerRepo from "@api/features/ledger/ledger.repo";
 import { Data, Effect } from "effect";
 
-const CASH_BANK_KEYS: ReadonlySet<AccountKey> = new Set(["cash", "bank_checking"]);
-
 export type CheckBalanceInput = {
   companyId: number;
   lines: Pick<InsertJournalEntryLine, "accountId" | "type" | "amount">[];
-  accountsById?: Map<number, Pick<Account, "id" | "key">>;
+  accountsById?: Map<number, Pick<Account, "id" | "name" | "type">>;
 };
 
 export function parseMoneyToCents(amount: string): bigint | null {
@@ -22,7 +21,7 @@ export function parseMoneyToCents(amount: string): bigint | null {
 
 export function computeCashBankCredits(
   lines: Pick<InsertJournalEntryLine, "accountId" | "type" | "amount">[],
-  accountsById: Map<number, Pick<Account, "id" | "key">>,
+  accountsById: Map<number, Pick<Account, "id" | "name" | "type">>,
 ): Map<number, bigint> {
   const proposedCreditsByAccount = new Map<number, bigint>();
 
@@ -31,7 +30,7 @@ export function computeCashBankCredits(
 
     const account = accountsById.get(line.accountId);
 
-    if (!account || !CASH_BANK_KEYS.has(account.key as AccountKey)) continue;
+    if (!account || !isCashOrBankType(account.type)) continue;
 
     const cents = parseMoneyToCents(line.amount);
 

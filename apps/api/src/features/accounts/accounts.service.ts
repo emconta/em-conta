@@ -28,7 +28,7 @@ export class AccountsService extends Effect.Service<AccountsService>()("Accounts
         for (const account of accounts) {
           const accountToInsert: InsertAccount = {
             name: account.name,
-            key: account.key ?? null,
+            type: account.type,
             description: account.description,
             nature: account.nature,
             category,
@@ -100,7 +100,7 @@ export class AccountsService extends Effect.Service<AccountsService>()("Accounts
         return accounts.map((account) => ({
           id: account.id,
           name: account.name,
-          key: account.key,
+          type: account.type,
           description: account.description,
           category: account.category,
           nature: account.nature,

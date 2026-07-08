@@ -70,7 +70,7 @@ export default function ProductsPage() {
   const productList = products.data?.isOk() ? products.data.value : [];
   const accountList = accounts.data?.isOk() ? accounts.data.value : [];
   const paymentAccounts = accountList.filter(
-    (account) => account.key === "cash" || account.key === "bank_checking",
+    (account) => account.type === "cash" || account.type === "bank_checking",
   );
   const filteredProducts = productList.filter((product) => {
     const matchesType = typeFilter === "all" || product.type === typeFilter;

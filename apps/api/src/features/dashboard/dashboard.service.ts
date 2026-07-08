@@ -1,12 +1,13 @@
+import { isCashOrBankType } from "@api/features/accounts/accountTypes";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import ReportsRepo, { type MonthlyRevenueExpensesRow } from "@api/features/reports/reports.repo";
+import type { ReportLineWithAccount } from "@api/features/reports/reports.repo";
 import {
   buildCurrentLiquidityReport,
   buildDreReport,
   moneyFromCents,
   moneyToCents,
   parseDrePeriod,
-  type ReportLineWithAccount,
 } from "@api/features/reports/reports.service";
 import type { DashboardDto, MonthlyRevenueExpensesDto } from "@dto/dashboard.dto";
 import { Data, Effect } from "effect";
@@ -132,11 +133,10 @@ function getMonthStart(date: string) {
 }
 
 function calculateCashAndBankBalance(balanceSheetRows: ReportLineWithAccount[]) {
-  const cashAndBankKeys = new Set(["cash", "bank_checking"]);
   let balance = 0n;
 
   for (const { line, account } of balanceSheetRows) {
-    if (!account.key || !cashAndBankKeys.has(account.key)) continue;
+    if (!isCashOrBankType(account.type)) continue;
 
     const cents = moneyToCents(line.amount);
     const signedDelta =

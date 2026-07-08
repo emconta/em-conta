@@ -61,7 +61,7 @@ describe("ledger running balance", () => {
 
 describe("ledger DTO builder", () => {
   it("starts with an opening balance row", () => {
-    const ledger = buildLedgerDto({ id: 10, name: "Caixa", key: "cash", nature: "debit" }, []);
+    const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, []);
 
     expect(ledger.accountId).toBe(10);
     expect(ledger.accountNature).toBe("debit");
@@ -76,7 +76,7 @@ describe("ledger DTO builder", () => {
   });
 
   it("shows cash ledger after a cash sale", () => {
-    const ledger = buildLedgerDto({ id: 10, name: "Caixa", key: "cash", nature: "debit" }, [
+    const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, [
       makeLine(
         { id: 1, amount: "10000.00", type: "debit" },
         { memo: "Venda #1", sourceType: "sale" },
@@ -93,7 +93,7 @@ describe("ledger DTO builder", () => {
   });
 
   it("shows cash ledger after a sale and an expense", () => {
-    const ledger = buildLedgerDto({ id: 10, name: "Caixa", key: "cash", nature: "debit" }, [
+    const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, [
       makeLine(
         { id: 1, amount: "10000.00", type: "debit" },
         { id: 1, memo: "Venda #1", sourceType: "sale" },
@@ -110,7 +110,7 @@ describe("ledger DTO builder", () => {
 
   it("shows revenue ledger with credit-nature balance", () => {
     const ledger = buildLedgerDto(
-      { id: 20, name: "Receita de vendas", key: "sales_revenue", nature: "credit" },
+      { id: 20, name: "Receita de vendas", type: "sales_revenue", nature: "credit" },
       [
         makeLine(
           { id: 1, amount: "10000.00", type: "credit" },
@@ -123,7 +123,7 @@ describe("ledger DTO builder", () => {
   });
 
   it("sorts rows by entry date then entry id", () => {
-    const ledger = buildLedgerDto({ id: 10, name: "Caixa", key: "cash", nature: "debit" }, [
+    const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, [
       makeLine(
         { id: 1, amount: "5000.00", type: "debit" },
         { id: 2, entryDate: new Date("2026-01-20T12:00:00.000Z"), memo: "Later" },
@@ -141,7 +141,7 @@ describe("ledger DTO builder", () => {
   });
 
   it("combines entry memo and line description", () => {
-    const ledger = buildLedgerDto({ id: 10, name: "Caixa", key: "cash", nature: "debit" }, [
+    const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, [
       makeLine(
         { id: 1, amount: "100.00", type: "debit", description: "Detalhe" },
         { memo: "Lançamento" },
@@ -152,7 +152,7 @@ describe("ledger DTO builder", () => {
   });
 
   it("falls back to source type when memo and description are empty", () => {
-    const ledger = buildLedgerDto({ id: 10, name: "Caixa", key: "cash", nature: "debit" }, [
+    const ledger = buildLedgerDto({ id: 10, name: "Caixa", type: "cash", nature: "debit" }, [
       makeLine({ id: 1, amount: "100.00", type: "debit" }, { sourceType: "sale" }),
     ]);
 

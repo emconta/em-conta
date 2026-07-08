@@ -1,4 +1,5 @@
 import type { Account, InsertReceipt } from "@api/db/schema";
+import { isCashOrBankType } from "@api/features/accounts/accountTypes";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import ReceiptsRepo, { type ReceiptJournalEntry } from "@api/features/receipts/receipts.repo";
@@ -45,9 +46,9 @@ export class ReceiptsService extends Effect.Service<ReceiptsService>()("Receipts
 
         const companyAccounts = yield* accountsRepo.listByCompany({ companyId: input.companyId });
         const cashAccount = yield* resolveCashAccount(input.cashAccountId, companyAccounts);
-        const accountsReceivable = yield* accountsRepo.getByCompanyAndKey({
+        const accountsReceivable = yield* accountsRepo.getByCompanyAndType({
           companyId: input.companyId,
-          key: "accounts_receivable",
+          type: "accounts_receivable",
         });
 
         if (!accountsReceivable) {
@@ -152,7 +153,7 @@ function resolveCashAccount(cashAccountId: number, companyAccounts: Account[]) {
   return Effect.gen(function* () {
     const account = companyAccounts.find((candidate) => candidate.id === cashAccountId);
 
-    if (!account || (account.key !== "cash" && account.key !== "bank_checking")) {
+    if (!account || !isCashOrBankType(account.type)) {
       return yield* Effect.fail(new CreateReceiptError({ code: "INVALID_CASH_ACCOUNT" }));
     }
 

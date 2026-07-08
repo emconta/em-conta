@@ -663,7 +663,7 @@ function AccountCombobox({
                         <span className="truncate">{account.name}</span>
                         <span className="truncate text-xs text-muted-foreground">
                           {account.nature === "debit" ? "Natureza devedora" : "Natureza credora"}
-                          {account.key ? ` · ${account.key}` : ""}
+                          {account.type ? ` · ${account.type}` : ""}
                         </span>
                       </span>
                     </ComboboxItem>
@@ -726,7 +726,7 @@ function accountCategoryMetadata(category: string) {
 function accountSearchLabel(account: AccountDto) {
   const category = accountCategoryMetadata(account.category).label;
 
-  return [account.name, category, account.nature, account.key].filter(Boolean).join(" ");
+  return [account.name, category, account.nature, account.type].filter(Boolean).join(" ");
 }
 
 function newDraftLine(): DraftLine {

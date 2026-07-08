@@ -29,7 +29,7 @@ type AccountTreeNode = {
   code: string;
   category: AccountDto["category"];
   nature: AccountDto["nature"];
-  key: AccountDto["key"];
+  type: AccountDto["type"];
   description: AccountDto["description"];
   depth: number;
   children: AccountTreeNode[];
@@ -60,6 +60,72 @@ function categoryLabel(category: AccountDto["category"]) {
   }
 }
 
+const accountTypeLabels: Record<string, string> = {
+  cash: "Caixa",
+  bank_checking: "Banco",
+  short_term_investments: "Aplicações",
+  accounts_receivable: "Clientes",
+  inventory: "Estoque",
+  prepaid_expenses: "Adiantamentos",
+  fixed_assets: "Ativos fixos",
+  intangible_assets: "Intangíveis",
+  accounts_payable: "Fornecedores",
+  taxes_payable: "Impostos",
+  salaries_payable: "Pró-labore",
+  expenses_payable: "Despesas a pagar",
+  loans_payable: "Empréstimos",
+  long_term_debt: "Dívida longo prazo",
+  capital: "Capital",
+  retained_earnings: "Lucros acumulados",
+  owner_withdrawals: "Retiradas",
+  sales_revenue: "Receita de vendas",
+  services_revenue: "Receita de serviços",
+  other_revenue: "Outras receitas",
+  cogs: "CMV",
+  cost_of_services: "Custo de serviços",
+  operating_expenses: "Despesas operacionais",
+  marketing_expenses: "Marketing",
+  other_expenses: "Outras despesas",
+};
+
+const termLabels: Record<string, string> = {
+  current: "Circulante",
+  non_current: "Não circulante",
+  n_a: "—",
+};
+
+const accountTypeTerms: Record<string, string> = {
+  cash: "current",
+  bank_checking: "current",
+  short_term_investments: "current",
+  accounts_receivable: "current",
+  inventory: "current",
+  prepaid_expenses: "current",
+  fixed_assets: "non_current",
+  intangible_assets: "non_current",
+  accounts_payable: "current",
+  taxes_payable: "current",
+  salaries_payable: "current",
+  expenses_payable: "current",
+  loans_payable: "current",
+  long_term_debt: "non_current",
+  capital: "n_a",
+  retained_earnings: "n_a",
+  owner_withdrawals: "n_a",
+  sales_revenue: "n_a",
+  services_revenue: "n_a",
+  other_revenue: "n_a",
+  cogs: "n_a",
+  cost_of_services: "n_a",
+  operating_expenses: "n_a",
+  marketing_expenses: "n_a",
+  other_expenses: "n_a",
+};
+
+function accountTypeLabel(type: string) {
+  return accountTypeLabels[type] ?? type;
+}
+
 function categoryNumber(category: AccountDto["category"]) {
   const index = categoryOrder.indexOf(category);
 
@@ -87,7 +153,7 @@ function buildAccountTree(accounts: AccountDto[]): AccountTreeNode[] {
       code,
       category: account.category,
       nature: account.nature,
-      key: account.key,
+      type: account.type,
       description: account.description,
       depth,
       children: children.map((child, index) => buildNode(child, `${code}.${index + 1}`, depth + 1)),
@@ -111,7 +177,7 @@ function buildAccountTree(accounts: AccountDto[]): AccountTreeNode[] {
       code: categoryCode,
       category,
       nature: "debit",
-      key: null,
+      type: "",
       description: null,
       depth: 0,
       children: topLevel.map((account, index) =>
@@ -206,20 +272,22 @@ export default function AccountsPage() {
               <TableRow className="bg-muted/70 hover:bg-muted/70">
                 <TableHead className="w-24 px-4 py-3">Código</TableHead>
                 <TableHead className="px-4 py-3">Conta</TableHead>
+                <TableHead className="px-4 py-3">Tipo</TableHead>
+                <TableHead className="px-4 py-3">Prazo</TableHead>
                 <TableHead className="px-4 py-3">Natureza</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {accounts.isLoading ? (
                 <TableRow>
-                  <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={3}>
+                  <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={5}>
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : null}
               {!accounts.isLoading && visibleNodes.length === 0 ? (
                 <TableRow>
-                  <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={3}>
+                  <TableCell className="px-4 py-8 text-center text-muted-foreground" colSpan={5}>
                     Nenhuma conta encontrada.
                   </TableCell>
                 </TableRow>
@@ -272,6 +340,12 @@ export default function AccountsPage() {
                             <p className="text-xs text-muted-foreground">{node.description}</p>
                           ) : null}
                         </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        {node.id < 0 ? "—" : accountTypeLabel(node.type)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        {node.id < 0 ? "—" : termLabels[accountTypeTerms[node.type] ?? "n_a"]}
                       </TableCell>
                       <TableCell className="px-4 py-3">
                         {node.id < 0 ? "—" : node.nature === "debit" ? "Devedora" : "Credora"}

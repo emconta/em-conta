@@ -1,4 +1,6 @@
-import type { AccountKey, InsertProduct, Product } from "@api/db/schema";
+import type { InsertProduct, Product } from "@api/db/schema";
+import { isCashOrBankType } from "@api/features/accounts/accountTypes";
+import type { AccountType } from "@api/features/accounts/accountTypes";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import { InventoryService, InventoryServiceError } from "@api/features/inventory/inventory.service";
@@ -70,7 +72,7 @@ export class ProductsService extends Effect.Service<ProductsService>()("Products
           return yield* Effect.fail(new ProductsServiceError({ code: "INVALID_PAYMENT_ACCOUNT" }));
         }
 
-        if (paymentAccount.key !== "cash" && paymentAccount.key !== "bank_checking") {
+        if (!isCashOrBankType(paymentAccount.type)) {
           return yield* Effect.fail(new ProductsServiceError({ code: "INVALID_PAYMENT_ACCOUNT" }));
         }
 
@@ -128,9 +130,9 @@ export class ProductsService extends Effect.Service<ProductsService>()("Products
       });
     }
 
-    function getRequiredAccount(companyId: number, key: AccountKey) {
+    function getRequiredAccount(companyId: number, type: AccountType) {
       return accountsRepo
-        .getByCompanyAndKey({ companyId, key })
+        .getByCompanyAndType({ companyId, type })
         .pipe(
           Effect.flatMap((account) =>
             account
@@ -193,8 +195,10 @@ export class ProductsServiceError extends Data.TaggedError("ProductsServiceError
     | "INVALID_DATE"
     | "INVALID_PAYMENT_ACCOUNT"
     | "INVALID_QUANTITY"
+    | "INVALID_STOCK_MOVEMENT"
     | "INVENTORY_NOT_TRACKED"
     | "MISSING_ACCOUNT"
+    | "NEGATIVE_STOCK"
     | "PRODUCT_NOT_FOUND"
     | "SERVICE_CANNOT_TRACK_STOCK";
   readonly shortfall?: string;

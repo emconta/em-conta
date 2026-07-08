@@ -1,6 +1,5 @@
 import type {
   Account,
-  AccountKey,
   InsertJournalEntryLine,
   InsertSale,
   InsertSaleItem,
@@ -10,6 +9,8 @@ import type {
   Sale,
   SaleItem,
 } from "@api/db/schema";
+import { isCashOrBankType } from "@api/features/accounts/accountTypes";
+import type { AccountType } from "@api/features/accounts/accountTypes";
 import AccountsRepo from "@api/features/accounts/accounts.repo";
 import CompaniesRepo from "@api/features/companies/companies.repo";
 import { InventoryService, InventoryServiceError } from "@api/features/inventory/inventory.service";
@@ -291,9 +292,9 @@ export class SalesService extends Effect.Service<SalesService>()("SalesService",
       });
     }
 
-    function getRequiredAccount(companyId: number, key: AccountKey) {
+    function getRequiredAccount(companyId: number, type: AccountType) {
       return accountsRepo
-        .getByCompanyAndKey({ companyId, key })
+        .getByCompanyAndType({ companyId, type })
         .pipe(
           Effect.flatMap((account) =>
             account
@@ -354,7 +355,7 @@ function resolveReceivingAccount(input: CreateSaleInput, companyAccounts: Accoun
 
     const account = companyAccounts.find((candidate) => candidate.id === input.cashAccountId);
 
-    if (!account || (account.key !== "cash" && account.key !== "bank_checking")) {
+    if (!account || !isCashOrBankType(account.type)) {
       return yield* Effect.fail(new CreateSaleError({ code: "INVALID_CASH_ACCOUNT" }));
     }
 
@@ -426,11 +427,14 @@ export class CreateSaleError extends Data.TaggedError("CreateSaleError")<{
     | "INVALID_CASH_ACCOUNT"
     | "INVALID_DATE"
     | "INVALID_QUANTITY"
+    | "INVALID_STOCK_MOVEMENT"
+    | "INVENTORY_NOT_TRACKED"
     | "MISSING_ACCOUNT"
     | "MISSING_CASH_ACCOUNT"
     | "NEGATIVE_STOCK"
     | "PRODUCT_NOT_FOUND"
-    | "UNSUPPORTED_DISCOUNT";
+    | "UNSUPPORTED_DISCOUNT"
+    | "INSUFFICIENT_BALANCE";
 }> {}
 
 export class ReadSaleError extends Data.TaggedError("ReadSaleError")<{

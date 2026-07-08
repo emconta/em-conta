@@ -2,6 +2,7 @@ import {
   buildBalanceSheetReport,
   buildCurrentLiquidityReport,
   buildDreReport,
+  moneyToCents,
   parseDrePeriod,
 } from "@api/features/reports/reports.service";
 import type { AccountCategory, AccountNature } from "@api/db/schema";
@@ -15,12 +16,14 @@ function makeLine(
   account: {
     category: AccountCategory;
     id: number;
-    key?: string;
     name: string;
     nature?: AccountNature;
+    type?: string;
   },
   line: { amount: string; type: "debit" | "credit" },
 ) {
+  const accountType = account.type ?? defaultAccountType(account.category);
+
   return {
     line: {
       id: 1,
@@ -45,7 +48,7 @@ function makeLine(
       id: account.id,
       companyId: 1,
       name: account.name,
-      key: account.key ?? null,
+      type: accountType,
       category: account.category,
       nature: account.nature ?? defaultNature(account.category),
       description: null,
@@ -54,6 +57,21 @@ function makeLine(
       updatedAt: new Date(),
     },
   };
+}
+
+function defaultAccountType(category: AccountCategory): string {
+  switch (category) {
+    case "assets":
+      return "fixed_assets";
+    case "liabilities":
+      return "accounts_payable";
+    case "equity":
+      return "capital";
+    case "revenue":
+      return "sales_revenue";
+    case "expenses":
+      return "operating_expenses";
+  }
 }
 
 describe("DRE period parsing", () => {
@@ -100,11 +118,11 @@ describe("DRE report builder", () => {
         { amount: "10000.00", type: "debit" },
       ),
       makeLine(
-        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { id: 20, name: "Receita de vendas", category: "revenue", type: "sales_revenue" },
         { amount: "10000.00", type: "credit" },
       ),
       makeLine(
-        { id: 30, name: "CMV", category: "expenses", key: "cogs" },
+        { id: 30, name: "CMV", category: "expenses", type: "cogs" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
@@ -145,15 +163,15 @@ describe("DRE report builder", () => {
   it("keeps detailed section totals reconciled with legacy totals", () => {
     const report = buildDreReport(period, [
       makeLine(
-        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { id: 20, name: "Receita de vendas", category: "revenue", type: "sales_revenue" },
         { amount: "10000.00", type: "credit" },
       ),
       makeLine(
-        { id: 21, name: "Receita de servicos", category: "revenue", key: "services_revenue" },
+        { id: 21, name: "Receita de servicos", category: "revenue", type: "services_revenue" },
         { amount: "5000.00", type: "credit" },
       ),
       makeLine(
-        { id: 30, name: "Custo de mercadorias vendidas", category: "expenses", key: "cogs" },
+        { id: 30, name: "Custo de mercadorias vendidas", category: "expenses", type: "cogs" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
@@ -290,34 +308,34 @@ describe("Balance Sheet report builder", () => {
   it("calculates demo balance sheet with sale, CMV and expense", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "10000.00", type: "debit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "4000.00", type: "credit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "credit" },
       ),
     ];
 
     const dreRows = [
       makeLine(
-        { id: 20, name: "Receita de vendas", category: "revenue", key: "sales_revenue" },
+        { id: 20, name: "Receita de vendas", category: "revenue", type: "sales_revenue" },
         { amount: "10000.00", type: "credit" },
       ),
       makeLine(
-        { id: 30, name: "CMV", category: "expenses", key: "cogs" },
+        { id: 30, name: "CMV", category: "expenses", type: "cogs" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
@@ -342,7 +360,7 @@ describe("Balance Sheet report builder", () => {
   it("includes initial capital in equity", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "2000.00", type: "debit" },
       ),
       makeLine(
@@ -361,11 +379,11 @@ describe("Balance Sheet report builder", () => {
   it("excludes zero-balance accounts", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "debit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "credit" },
       ),
     ];
@@ -374,12 +392,133 @@ describe("Balance Sheet report builder", () => {
 
     expect(report.assets.items).toHaveLength(0);
     expect(report.assets.total).toBe("0.00");
+    expect(report.assets.subgroups.every((subgroup) => subgroup.items.length === 0)).toBe(true);
+  });
+
+  it("classifies assets and liabilities into current and non-current subgroups", () => {
+    const balanceSheetRows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
+        { amount: "5000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
+        { amount: "4000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 70, name: "Imobilizado", category: "assets", type: "fixed_assets" },
+        { amount: "20000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities", type: "accounts_payable" },
+        { amount: "2000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 56, name: "Empréstimos a pagar", category: "liabilities", type: "loans_payable" },
+        { amount: "10000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 60, name: "Capital social", category: "equity" },
+        { amount: "17000.00", type: "credit" },
+      ),
+    ];
+
+    const report = buildBalanceSheetReport(period, balanceSheetRows, []);
+
+    const [currentAssets, nonCurrentAssets] = report.assets.subgroups;
+    const [currentLiabilities, nonCurrentLiabilities] = report.liabilities.subgroups;
+
+    expect(currentAssets.total).toBe("9000.00");
+    expect(currentAssets.items).toHaveLength(2);
+    expect(nonCurrentAssets.total).toBe("20000.00");
+    expect(nonCurrentAssets.items).toHaveLength(1);
+
+    expect(currentLiabilities.total).toBe("12000.00");
+    expect(currentLiabilities.items).toHaveLength(2);
+    expect(nonCurrentLiabilities.total).toBe("0.00");
+    expect(nonCurrentLiabilities.items).toHaveLength(0);
+
+    expect(report.assets.total).toBe("29000.00");
+    expect(report.liabilities.total).toBe("12000.00");
+    expect(report.equity.total).toBe("17000.00");
+    expect(report.isBalanced).toBe(true);
+  });
+
+  it("reconciles subgroup totals with group totals", () => {
+    const balanceSheetRows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
+        { amount: "3000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 70, name: "Imobilizado", category: "assets", type: "fixed_assets" },
+        { amount: "7000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Fornecedores a pagar", category: "liabilities", type: "accounts_payable" },
+        { amount: "1500.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 56, name: "Empréstimos a pagar", category: "liabilities", type: "loans_payable" },
+        { amount: "2500.00", type: "credit" },
+      ),
+    ];
+
+    const report = buildBalanceSheetReport(period, balanceSheetRows, []);
+
+    const assetsSubgroupTotal = report.assets.subgroups.reduce(
+      (sum, subgroup) => sum + moneyToCents(subgroup.total),
+      0n,
+    );
+    const liabilitiesSubgroupTotal = report.liabilities.subgroups.reduce(
+      (sum, subgroup) => sum + moneyToCents(subgroup.total),
+      0n,
+    );
+
+    expect(assetsSubgroupTotal).toBe(moneyToCents(report.assets.total));
+    expect(liabilitiesSubgroupTotal).toBe(moneyToCents(report.liabilities.total));
+  });
+
+  it("classifies asset keys as non-current and liability keys as current by default", () => {
+    const balanceSheetRows = [
+      makeLine(
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
+        { amount: "1000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 71, name: "Ativo sem chave", category: "assets" },
+        { amount: "2000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 72, name: "Ativo intangível", category: "assets", type: "intangible_assets" },
+        { amount: "3000.00", type: "debit" },
+      ),
+      makeLine(
+        { id: 55, name: "Passivo sem chave", category: "liabilities" },
+        { amount: "1000.00", type: "credit" },
+      ),
+      makeLine(
+        { id: 60, name: "Capital social", category: "equity" },
+        { amount: "5000.00", type: "credit" },
+      ),
+    ];
+
+    const report = buildBalanceSheetReport(period, balanceSheetRows, []);
+    const [currentAssets, nonCurrentAssets] = report.assets.subgroups;
+    const [currentLiabilities, nonCurrentLiabilities] = report.liabilities.subgroups;
+
+    expect(currentAssets.items).toHaveLength(1);
+    expect(nonCurrentAssets.items).toHaveLength(2);
+    expect(currentLiabilities.items).toHaveLength(1);
+    expect(nonCurrentLiabilities.items).toHaveLength(0);
+    expect(report.equity.subgroups).toHaveLength(0);
+    expect(report.isBalanced).toBe(true);
   });
 
   it("keeps balance sheet cumulative while resultado uses only the period", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "debit" },
       ),
       makeLine(
@@ -387,7 +526,7 @@ describe("Balance Sheet report builder", () => {
         { amount: "1000.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "500.00", type: "credit" },
       ),
     ];
@@ -409,7 +548,7 @@ describe("Balance Sheet report builder", () => {
   it("handles net loss reducing equity", () => {
     const balanceSheetRows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "2000.00", type: "debit" },
       ),
       makeLine(
@@ -417,7 +556,7 @@ describe("Balance Sheet report builder", () => {
         { amount: "2000.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "3000.00", type: "credit" },
       ),
     ];
@@ -461,23 +600,23 @@ describe("Current Liquidity report builder", () => {
   it("calculates demo liquidity after sale, CMV and expense", () => {
     const rows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "10000.00", type: "debit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "4000.00", type: "credit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "debit" },
       ),
       makeLine(
-        { id: 40, name: "Estoque", category: "assets", key: "inventory" },
+        { id: 40, name: "Estoque", category: "assets", type: "inventory" },
         { amount: "4000.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "credit" },
       ),
       makeLine(
@@ -498,7 +637,7 @@ describe("Current Liquidity report builder", () => {
   it("returns N/A when current liabilities are zero", () => {
     const rows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "5000.00", type: "debit" },
       ),
     ];
@@ -515,7 +654,7 @@ describe("Current Liquidity report builder", () => {
   it("ignores equity, revenue and expense accounts", () => {
     const rows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "5000.00", type: "debit" },
       ),
       makeLine(
@@ -546,7 +685,7 @@ describe("Current Liquidity report builder", () => {
   it("respects account nature when calculating balances", () => {
     const rows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash", nature: "debit" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash", nature: "debit" },
         { amount: "1000.00", type: "debit" },
       ),
       makeLine(
@@ -554,7 +693,7 @@ describe("Current Liquidity report builder", () => {
         { amount: "500.00", type: "credit" },
       ),
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash", nature: "debit" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash", nature: "debit" },
         { amount: "300.00", type: "credit" },
       ),
       makeLine(
@@ -573,7 +712,7 @@ describe("Current Liquidity report builder", () => {
   it("returns N/A when current liabilities are negative", () => {
     const rows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "1000.00", type: "debit" },
       ),
       makeLine(
@@ -594,7 +733,7 @@ describe("Current Liquidity report builder", () => {
   it("truncates ratio to two decimal places", () => {
     const rows = [
       makeLine(
-        { id: 10, name: "Caixa", category: "assets", key: "cash" },
+        { id: 10, name: "Caixa", category: "assets", type: "cash" },
         { amount: "100.00", type: "debit" },
       ),
       makeLine(

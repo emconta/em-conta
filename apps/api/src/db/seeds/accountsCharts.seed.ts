@@ -6,23 +6,25 @@ const chart = {
   assets: [
     {
       name: "Disponibilidades",
+      type: "cash",
       nature: "debit",
       description: "Recursos com liquidez imediata ou quase imediata.",
       children: [
         {
           name: "Caixa",
-          key: "cash",
+          type: "cash",
           nature: "debit",
           description: "Valores em especie para pequenas despesas.",
         },
         {
           name: "Banco conta movimento",
-          key: "bank_checking",
+          type: "bank_checking",
           nature: "debit",
           description: "Saldo em conta corrente usado na operacao diaria.",
         },
         {
           name: "Aplicacoes financeiras",
+          type: "short_term_investments",
           nature: "debit",
           description: "Reservas de curto prazo e investimentos liquidos.",
         },
@@ -30,18 +32,19 @@ const chart = {
     },
     {
       name: "Clientes a receber",
-      key: "accounts_receivable",
+      type: "accounts_receivable",
       nature: "debit",
       description: "Vendas ou servicos faturados ainda nao recebidos.",
     },
     {
       name: "Estoque",
-      key: "inventory",
+      type: "inventory",
       nature: "debit",
       description: "Mercadorias ou insumos disponiveis para venda ou consumo.",
     },
     {
       name: "Adiantamentos",
+      type: "prepaid_expenses",
       nature: "debit",
       description: "Valores pagos antecipadamente a fornecedores ou terceiros.",
     },
@@ -49,28 +52,31 @@ const chart = {
   liabilities: [
     {
       name: "Fornecedores a pagar",
-      key: "accounts_payable",
+      type: "accounts_payable",
       nature: "credit",
       description: "Compras e servicos contratados ainda nao pagos.",
     },
     {
       name: "Impostos a recolher",
-      key: "taxes_payable",
+      type: "taxes_payable",
       nature: "credit",
       description: "Tributos incidentes sobre a operacao que aguardam pagamento.",
     },
     {
       name: "Pro-labore a pagar",
+      type: "salaries_payable",
       nature: "credit",
       description: "Valor do pro-labore definido e ainda nao pago.",
     },
     {
       name: "Despesas operacionais a pagar",
+      type: "expenses_payable",
       nature: "credit",
       description: "Contas recorrentes vencidas ou a vencer no curto prazo.",
     },
     {
       name: "Emprestimos",
+      type: "loans_payable",
       nature: "credit",
       description: "Financiamentos e emprestimos assumidos pelo negocio.",
     },
@@ -78,16 +84,19 @@ const chart = {
   equity: [
     {
       name: "Capital investido",
+      type: "capital",
       nature: "credit",
       description: "Aportes realizados pelo proprietario no negocio.",
     },
     {
       name: "Lucros acumulados",
+      type: "retained_earnings",
       nature: "credit",
       description: "Resultado positivo mantido na empresa ao longo do tempo.",
     },
     {
       name: "Retiradas do proprietario",
+      type: "owner_withdrawals",
       nature: "debit",
       description: "Saques do proprietario fora do fluxo de despesas operacionais.",
     },
@@ -95,18 +104,19 @@ const chart = {
   revenue: [
     {
       name: "Receita de vendas",
-      key: "sales_revenue",
+      type: "sales_revenue",
       nature: "credit",
       description: "Entradas oriundas da venda de produtos.",
     },
     {
       name: "Receita de servicos",
-      key: "services_revenue",
+      type: "services_revenue",
       nature: "credit",
       description: "Entradas oriundas da prestacao de servicos.",
     },
     {
       name: "Outras receitas",
+      type: "other_revenue",
       nature: "credit",
       description: "Ganhos eventuais que nao fazem parte da atividade principal.",
     },
@@ -114,17 +124,19 @@ const chart = {
   expenses: [
     {
       name: "Custos diretos",
+      type: "cogs",
       nature: "debit",
       description: "Custos diretamente ligados a venda ou entrega do produto e servico.",
       children: [
         {
           name: "Custo de mercadorias vendidas",
-          key: "cogs",
+          type: "cogs",
           nature: "debit",
           description: "Custo dos produtos revendidos ou produzidos.",
         },
         {
           name: "Custo dos servicos prestados",
+          type: "cost_of_services",
           nature: "debit",
           description: "Gastos diretamente ligados a entrega do servico.",
         },
@@ -132,48 +144,71 @@ const chart = {
     },
     {
       name: "Despesas administrativas",
+      type: "operating_expenses",
       nature: "debit",
       description: "Gastos de suporte e manutencao da operacao.",
       children: [
-        { name: "Aluguel", nature: "debit", description: null },
-        { name: "Agua e energia", nature: "debit", description: null },
-        { name: "Internet e telefone", nature: "debit", description: null },
-        { name: "Material de escritorio", nature: "debit", description: null },
-        { name: "Software e assinaturas", nature: "debit", description: null },
+        { name: "Aluguel", type: "operating_expenses", nature: "debit", description: null },
+        { name: "Agua e energia", type: "operating_expenses", nature: "debit", description: null },
+        {
+          name: "Internet e telefone",
+          type: "operating_expenses",
+          nature: "debit",
+          description: null,
+        },
+        {
+          name: "Material de escritorio",
+          type: "operating_expenses",
+          nature: "debit",
+          description: null,
+        },
+        {
+          name: "Software e assinaturas",
+          type: "operating_expenses",
+          nature: "debit",
+          description: null,
+        },
       ],
     },
     {
       name: "Marketing",
+      type: "marketing_expenses",
       nature: "debit",
       description: "Investimentos em divulgacao e captacao de clientes.",
     },
     {
       name: "Honorarios contabeis",
+      type: "operating_expenses",
       nature: "debit",
       description: "Servicos de contabilidade e apoio fiscal.",
     },
     {
       name: "Tarifas bancarias",
+      type: "operating_expenses",
       nature: "debit",
       description: "Custos de manutencao e uso de servicos bancarios.",
     },
     {
       name: "Impostos e taxas",
+      type: "operating_expenses",
       nature: "debit",
       description: "Tributos e taxas incidentes no funcionamento do negocio.",
     },
     {
       name: "Transporte e deslocamento",
+      type: "operating_expenses",
       nature: "debit",
       description: "Custos com locomocao, fretes e entregas.",
     },
     {
       name: "Pro-labore",
+      type: "operating_expenses",
       nature: "debit",
       description: "Remuneracao mensal do proprietario pelo trabalho prestado.",
     },
     {
       name: "Outras despesas operacionais",
+      type: "other_expenses",
       nature: "debit",
       description: "Gastos recorrentes que nao se encaixam nas demais categorias.",
     },
