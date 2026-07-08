@@ -70,7 +70,7 @@ export default function JournalPage() {
   const [discardCreateOpen, setDiscardCreateOpen] = useState(false);
   const ignoreNextCreateCloseRef = useRef(false);
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
   const entryDetail = useJournalEntry(selectedEntryId);
   const [entryDate, setEntryDate] = useState(today);
@@ -81,9 +81,7 @@ export default function JournalPage() {
   const selectedEntry = entryDetail.data?.isOk() ? entryDetail.data.value : null;
   const filteredEntries = entryList.filter((entry) => {
     const matchesSource = sourceFilter === "all" || entry.sourceType === sourceFilter;
-    const matchesStatus = statusFilter === "all" || entry.status === statusFilter;
-
-    return matchesSource && matchesStatus;
+    return matchesSource;
   });
   const totals = useMemo(() => sumLines(lines), [lines]);
   const filledLines = useMemo(() => lines.filter(isFilledLine), [lines]);
@@ -123,10 +121,6 @@ export default function JournalPage() {
         header: "Créditos",
         cell: ({ row }) => <span>R$ {row.original.totalCredits}</span>,
       },
-      {
-        accessorFn: (entry) => (entry.status === "posted" ? "Postado" : "Estornado"),
-        header: "Status",
-      },
     ],
     [],
   );
@@ -145,17 +139,7 @@ export default function JournalPage() {
         { label: "Recebimento", value: "receipt" },
       ],
     },
-    {
-      id: "status",
-      label: "Status",
-      value: statusFilter,
-      onChange: setStatusFilter,
-      options: [
-        { label: "Todos", value: "all" },
-        { label: "Postados", value: "posted" },
-        { label: "Estornados", value: "void" },
-      ],
-    },
+
   ];
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -825,8 +809,6 @@ function sourceLabel(sourceType: JournalEntryListItemDto["sourceType"]) {
       return "Compra";
     case "receipt":
       return "Recebimento";
-    case "reversal":
-      return "Estorno";
     case "sale":
       return "Venda";
     case "stock_issue":

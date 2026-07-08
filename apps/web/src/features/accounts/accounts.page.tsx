@@ -471,8 +471,6 @@ function sourceLabel(sourceType: AccountLedgerRowDto["sourceType"]) {
       return "Compra";
     case "receipt":
       return "Recebimento";
-    case "reversal":
-      return "Estorno";
     case "sale":
       return "Venda";
     case "stock_issue":

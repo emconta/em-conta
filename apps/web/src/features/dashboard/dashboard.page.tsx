@@ -10,18 +10,17 @@ import { useDashboardSummary } from "@web/features/dashboard/dashboard.queries";
 import { useJournalEntries } from "@web/features/journal/journal.queries";
 import { useSales } from "@web/features/sales/sales.queries";
 import { formatMoney } from "@web/lib/format";
-import type { JournalEntryListItemDto, JournalSourceTypeDto } from "@dto/journal.dto";
+import type { JournalEntryListItemDto } from "@dto/journal.dto";
 import type { SaleListItemDto } from "@dto/sales.dto";
 import { ArrowRightIcon } from "lucide-react";
 import * as React from "react";
 
-const sourceTypeLabel: Record<JournalSourceTypeDto, string> = {
+const sourceTypeLabel: Record<string, string> = {
   sale: "Venda",
   receipt: "Recebimento",
   stock_issue: "Saída de estoque",
   purchase: "Compra",
   manual: "Manual",
-  reversal: "Estorno",
 };
 
 const recentEntriesColumns: ColumnDef<JournalEntryListItemDto>[] = [
@@ -72,10 +71,6 @@ const recentSalesColumns: ColumnDef<SaleListItemDto>[] = [
     accessorKey: "netAmount",
     header: "Total",
     cell: ({ row }) => <span className="font-medium">R$ {row.original.netAmount}</span>,
-  },
-  {
-    accessorFn: (sale) => (sale.status === "posted" ? "Postada" : "Estornada"),
-    header: "Status",
   },
 ];
 

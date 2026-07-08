@@ -125,10 +125,6 @@ export default function SalesPage() {
         header: "Total",
         cell: ({ row }) => <span className="font-medium">R$ {row.original.netAmount}</span>,
       },
-      {
-        accessorFn: (sale) => (sale.status === "posted" ? "Postada" : "Estornada"),
-        header: "Status",
-      },
     ],
     [],
   );
