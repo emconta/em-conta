@@ -173,7 +173,37 @@ Definition of done:
 - Fix is applied consistently to sales, journal entries, stock intake, receipts, payables, and report filters where masks exist.
 - Manual checks cover desktop and mobile typing behavior.
 
-### 12. Root Redirect To Dashboard
+### 12. Manual Journal Entry Form Revamp
+
+Status: pending
+
+Goal: redesign the manual journal entry form so users can clearly see and edit each line's debit and credit side, similar to Odoo's journal entry table.
+
+Definition of done:
+
+- Manual journal entry creation uses a table-first form inside the existing create/edit modal flow, replacing any layout that hides debit/credit direction behind generic fields.
+- Header fields stay above the lines table and include at least date and memo/history, with sensible defaults and validation shown before submit.
+- Lines table columns are ordered as account, label/description, debit, credit, and row actions; debit and credit are separate editable currency inputs.
+- Each row can have either debit or credit filled, never both; when the user enters a positive value on one side, the opposite side is automatically cleared or kept as zero.
+- Empty debit and credit cells are visually rendered as `R$ 0,00` or an equivalent muted empty state so the side of the posting remains obvious.
+- The account column uses the existing account combobox/search behavior, showing account code and name, and allowing keyboard search before selecting an account.
+- The label/description column is an optional per-line note that defaults from the header memo or selected account when useful, but remains independently editable.
+- The form always keeps one blank visible line at the bottom for quick insertion; focusing or selecting an account in that blank line turns it into a real line and immediately appends a new blank line.
+- Users can add lines with keyboard-first flow: select account, tab to label, tab to debit, tab to credit, then continue to the next blank line.
+- Users can remove non-empty lines with a visible row action; removing a line immediately recalculates totals and validation state.
+- Footer shows total debit and total credit aligned under their columns and updates as the user edits values.
+- If totals differ, the footer clearly shows the imbalance amount and submit is blocked with a plain-language validation message.
+- If totals match and all non-empty rows are valid, the footer shows a balanced state and submit is enabled.
+- A line is considered valid only when it has an account and exactly one positive amount on debit or credit.
+- Blank trailing rows are ignored on submit and do not trigger validation errors.
+- Existing API payload remains balanced debit/credit lines compatible with the current backend contract unless a backend change is explicitly required.
+- Existing backend validations for empty lines, non-positive amounts, unbalanced totals, company account ownership, and insufficient cash/bank balance remain authoritative.
+- Currency inputs use the fixed masked-input behavior, allowing normal cursor positioning, partial edits, deletion, paste, and mobile numeric keyboard input.
+- The modal remains usable on smaller screens: table can scroll horizontally if necessary, totals and primary actions remain visible, and no column becomes ambiguous.
+- Accessibility is covered with explicit labels or accessible column headers for account, label, debit, credit, remove row, totals, and validation messages.
+- Manual checks cover creating a simple two-line entry, adding three or more lines, editing an existing amount side, switching a value from debit to credit, deleting a line, submitting balanced entries, and seeing blocked unbalanced entries.
+
+### 13. Root Redirect To Dashboard
 
 Status: pending
 
@@ -186,7 +216,7 @@ Definition of done:
 - Auth behavior remains intact for unauthenticated users.
 - Smoke check confirms `/dashboard` still loads normally.
 
-### 13. Dashboard Current Month Net Profit Card
+### 14. Dashboard Current Month Net Profit Card
 
 Status: pending
 
@@ -200,7 +230,7 @@ Definition of done:
 - Values come from journal lines, not guessed totals.
 - Focused check compares the card value with the DRE result for the same current-month period.
 
-### 14. Accounting Help Hover Cards
+### 15. Accounting Help Hover Cards
 
 Status: pending
 
@@ -214,7 +244,7 @@ Definition of done:
 - Hover cards are keyboard accessible and usable on mobile or have an acceptable mobile interaction.
 - Visual treatment fits the existing design system.
 
-### 15. Detailed DRE Report
+### 16. Detailed DRE Report
 
 Status: pending
 
@@ -229,7 +259,7 @@ Definition of done:
 - Empty groups render clearly without misleading zero rows.
 - Focused tests or checks cover section totals and final net result reconciliation.
 
-### 16. Detailed Balance Sheet Report
+### 17. Detailed Balance Sheet Report
 
 Status: pending
 
@@ -244,7 +274,7 @@ Definition of done:
 - Zero-balance accounts are hidden or clearly handled according to the chosen UX.
 - Focused tests or checks cover account detail totals and the balance equality.
 
-### 17. CSV Report Export
+### 18. CSV Report Export
 
 Status: pending
 
@@ -259,7 +289,7 @@ Definition of done:
 - Export works without exposing data from other companies.
 - Focused checks cover at least DRE, Balance Sheet, and ledger exports.
 
-### 18. Demo Seed / Smoke Path
+### 19. Demo Seed / Smoke Path
 
 Status: pending
 
