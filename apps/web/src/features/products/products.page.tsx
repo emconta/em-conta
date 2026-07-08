@@ -2,10 +2,8 @@ import type { AccountDto } from "@dto/accounts.dto";
 import type { CreateProductDto, CreateStockIntakeDto, ProductDto } from "@dto/products.dto";
 import { useQueryClient } from "@tanstack/react-query";
 import { AccountingHelp } from "@web/components/accounting-help";
-import { getLeafCashBankAccounts } from "@web/lib/accounts";
 import { Button } from "@web/components/ui/button";
 import { type ColumnDef, DataTable, type DataTableFilter } from "@web/components/ui/data-table";
-import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@web/components/ui/dialog";
+import { DiscardChangesAlert } from "@web/components/ui/discard-changes-alert";
 import { Field, FieldLabel } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
+import LoadingButton from "@web/components/ui/loadingButton";
 import { MoneyInput, QuantityInput } from "@web/components/ui/masked-input";
 import {
   Select,
@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@web/components/ui/select";
 import { Switch } from "@web/components/ui/switch";
-import LoadingButton from "@web/components/ui/loadingButton";
 import { useAccounts } from "@web/features/accounts/accounts.queries";
 import {
   listProductsOptions,
@@ -32,6 +31,7 @@ import {
   useCreateStockIntake,
   useProducts,
 } from "@web/features/products/products.queries";
+import { getLeafCashBankAccounts } from "@web/lib/accounts";
 import { PackagePlusIcon, PlusIcon } from "lucide-react";
 import type * as React from "react";
 import { useMemo, useRef, useState } from "react";
@@ -282,23 +282,10 @@ export default function ProductsPage() {
           if (product.trackInventory) setStockProduct(product);
         }}
         actions={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!productList.some((product) => product.trackInventory)}
-              onClick={() =>
-                setStockProduct(productList.find((product) => product.trackInventory) ?? null)
-              }
-            >
-              <PackagePlusIcon data-icon="inline-start" />
-              Entrada de estoque
-            </Button>
-            <Button type="button" onClick={() => setCreateOpen(true)}>
-              <PlusIcon data-icon="inline-start" />
-              Novo item
-            </Button>
-          </>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            Novo item
+          </Button>
         }
       />
 
